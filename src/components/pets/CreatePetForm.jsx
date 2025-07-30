@@ -1,4 +1,3 @@
-// src/components/pets/CreatePetForm.jsx
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -14,50 +13,72 @@ const CreatePetForm = () => {
   const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
-  
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+    defaultValues: {
+      is_for_adoption: false,
+      availability: true,
+    },
+  });
+
   const isForAdoption = watch('is_for_adoption');
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log('[CreatePetForm.handleImageChange] Selected image:', file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
+    } else {
+      console.log('[CreatePetForm.handleImageChange] No image selected');
+      setImagePreview(null);
     }
   };
 
   const onSubmit = async (data) => {
+    console.log('[CreatePetForm.onSubmit] Form data:', data);
     setLoading(true);
     try {
-      const formData = new FormData();
-      Object.keys(data).forEach(key => {
-        if (key === 'image' && data[key][0]) {
-          formData.append(key, data[key][0]);
-        } else if (key !== 'image') {
-          formData.append(key, data[key]);
-        }
-      });
+      // Prepare petData for petService.createPet
+      const petData = {
+        name: data.name,
+        pet_type: data.pet_type,
+        breed: data.breed,
+        age: parseFloat(data.age), // Ensure age is a number
+        gender: data.gender,
+        description: data.description,
+        is_for_adoption: data.is_for_adoption,
+        price: data.is_for_adoption ? null : parseFloat(data.price), // Set price to null for adoption
+        image: data.image[0], // File object from input
+        availability: data.availability,
+      };
 
-      const response = await petService.createPet(formData);
-      
+      console.log('[CreatePetForm.onSubmit] Submitting petData:', petData);
+      const response = await petService.createPet(petData);
+
       addNotification({
         type: 'success',
         title: 'Pet Listed Successfully',
         message: 'Your pet listing has been published.',
       });
-      
+
       navigate(`/pets/${response.id}`);
     } catch (error) {
+      console.error('[CreatePetForm.onSubmit] Error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       addNotification({
         type: 'error',
         title: 'Listing Failed',
-        message: 'Failed to create pet listing. Please try again.',
+        message: error.message || 'Failed to create pet listing. Please try again.',
       });
     } finally {
       setLoading(false);
+      console.log('[CreatePetForm.onSubmit] Submission completed, loading:', false);
     }
   };
 
@@ -69,35 +90,34 @@ const CreatePetForm = () => {
           {...register('name', { required: 'Pet name is required' })}
           error={errors.name?.message}
         />
-        
+
         <Select
           label="Pet Type"
           {...register('pet_type', { required: 'Pet type is required' })}
           options={[
             { value: 'cat', label: 'Cat' },
             { value: 'dog', label: 'Dog' },
-            { value: 'other', label: 'Other' },
           ]}
           error={errors.pet_type?.message}
         />
-        
+
         <Input
           label="Breed"
           {...register('breed', { required: 'Breed is required' })}
           error={errors.breed?.message}
         />
-        
+
         <Input
           label="Age (years)"
           type="number"
           step="0.1"
-          {...register('age', { 
+          {...register('age', {
             required: 'Age is required',
-            min: { value: 0, message: 'Age must be positive' }
+            min: { value: 0, message: 'Age must be positive' },
           })}
           error={errors.age?.message}
         />
-        
+
         <Select
           label="Gender"
           {...register('gender', { required: 'Gender is required' })}
@@ -107,7 +127,7 @@ const CreatePetForm = () => {
           ]}
           error={errors.gender?.message}
         />
-        
+
         <div>
           <label className="flex items-center space-x-2">
             <input
@@ -120,20 +140,21 @@ const CreatePetForm = () => {
             </span>
           </label>
         </div>
-        
+
         {!isForAdoption && (
           <Input
             label="Price ($)"
             type="number"
-            {...register('price', { 
+            step="0.01"
+            {...register('price', {
               required: !isForAdoption ? 'Price is required for sale' : false,
-              min: { value: 0, message: 'Price must be positive' }
+              min: { value: 0, message: 'Price must be positive' },
             })}
             error={errors.price?.message}
           />
         )}
       </div>
-      
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Description
@@ -141,7 +162,6 @@ const CreatePetForm = () => {
         <textarea
           {...register('description', { required: 'Description is required' })}
           rows={4}
-// src/components/pets/CreatePetForm.jsx (continued)
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0] focus:border-[#FFCAB0]"
           placeholder="Describe your pet's personality, habits, and any special needs..."
         />
@@ -149,7 +169,7 @@ const CreatePetForm = () => {
           <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
         )}
       </div>
-      
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Pet Photo
@@ -185,7 +205,7 @@ const CreatePetForm = () => {
           <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>
         )}
       </div>
-      
+
       <div className="flex items-center">
         <input
           type="checkbox"
@@ -197,7 +217,7 @@ const CreatePetForm = () => {
           Mark as available immediately
         </label>
       </div>
-      
+
       <Button type="submit" loading={loading} className="w-full">
         Create Listing
       </Button>

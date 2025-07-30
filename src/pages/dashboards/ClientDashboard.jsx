@@ -1,4 +1,3 @@
-// src/pages/dashboards/ClientDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
@@ -16,25 +15,34 @@ const ClientDashboard = () => {
     favorites: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log('[ClientDashboard] Component mounted, fetching dashboard data');
     fetchDashboardData();
   }, []);
 
   const fetchDashboardData = async () => {
+    console.log('[ClientDashboard.fetchDashboardData] Starting data fetch');
     setLoading(true);
+    setError(null);
     try {
       // Fetch user posts
+      console.log('[ClientDashboard.fetchDashboardData] Fetching user posts');
       const posts = await userService.getUserPosts();
+      console.log('[ClientDashboard.fetchDashboardData] User posts fetched:', posts);
       setUserPosts(posts);
 
       // Fetch conversations
+      console.log('[ClientDashboard.fetchDashboardData] Fetching conversations');
       const convos = await messageService.getConversations();
+      console.log('[ClientDashboard.fetchDashboardData] Conversations fetched:', convos);
       setConversations(convos);
 
       // Calculate stats
       const activePosts = posts.filter(post => post.pet?.availability === true).length;
-      const unreadMessages = convos.reduce((sum, conv) => sum + conv.unread_count, 0);
+      const unreadMessages = convos.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+      console.log('[ClientDashboard.fetchDashboardData] Stats calculated:', { activePosts, unreadMessages });
 
       setStats({
         totalPosts: posts.length,
@@ -43,8 +51,15 @@ const ClientDashboard = () => {
         favorites: 0, // No favorites endpoint in API
       });
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      console.error('[ClientDashboard.fetchDashboardData] Error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+      setError('Failed to load dashboard data. Please try again later.');
     } finally {
+      console.log('[ClientDashboard.fetchDashboardData] Data fetch completed, loading:', false);
       setLoading(false);
     }
   };
@@ -57,6 +72,7 @@ const ClientDashboard = () => {
   ];
 
   if (loading) {
+    console.log('[ClientDashboard] Rendering loading state');
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -66,6 +82,27 @@ const ClientDashboard = () => {
     );
   }
 
+  if (error) {
+    console.log('[ClientDashboard] Rendering error state:', error);
+    return (
+      <DashboardLayout>
+        <div className="p-6 text-center text-red-600">
+          <p>{error}</p>
+          <button
+            onClick={() => {
+              console.log('[ClientDashboard] Retry button clicked');
+              fetchDashboardData();
+            }}
+            className="mt-4 inline-flex items-center px-4 py-2 bg-[#FFCAB0] text-white rounded-md hover:bg-[#FFB090]"
+          >
+            Retry
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  console.log('[ClientDashboard] Rendering dashboard with posts:', userPosts, 'conversations:', conversations);
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -79,6 +116,7 @@ const ClientDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {quickStats.map((stat, index) => {
             const Icon = stat.icon;
+            console.log('[ClientDashboard] Rendering stat:', stat.label, stat.value);
             return (
               <div key={index} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between">
@@ -118,41 +156,44 @@ const ClientDashboard = () => {
                 </Link>
               </div>
             ) : (
-              userPosts.slice(0, 5).map((post) => (
-                <div key={post.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <img
-                        src={post.pet.images_data?.[0]?.image || '/api/placeholder/60/60'}
-                        alt={post.pet.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                      <div>
-                        <h3 className="font-medium text-gray-900">{post.pet.name}</h3>
-                        <p className="text-sm text-gray-600">{post.pet.breed}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Posted {new Date(post.created_at).toLocaleDateString()}
-                        </p>
+              userPosts.slice(0, 5).map((post) => {
+                console.log('[ClientDashboard] Rendering post:', post);
+                return (
+                  <div key={post.id} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={post.pet.images_data?.[0]?.image || '/api/placeholder/60/60'}
+                          alt={post.pet.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                        <div>
+                          <h3 className="font-medium text-gray-900">{post.pet.name}</h3>
+                          <p className="text-sm text-gray-600">{post.pet.breed}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Posted {new Date(post.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className={`px-3 py-1 text-xs rounded-full ${
+                          post.pet.availability 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {post.pet.availability ? 'Available' : 'Unavailable'}
+                        </span>
+                        <Link
+                          to={`/pets/${post.pet.id}/edit`}
+                          className="text-sm text-gray-600 hover:text-gray-900"
+                        >
+                          Edit
+                        </Link>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <span className={`px-3 py-1 text-xs rounded-full ${
-                        post.pet.availability 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {post.pet.availability ? 'Available' : 'Unavailable'}
-                      </span>
-                      <Link
-                        to={`/pets/${post.pet.id}/edit`}
-                        className="text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Edit
-                      </Link>
-                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           {userPosts.length > 5 && (
@@ -185,31 +226,34 @@ const ClientDashboard = () => {
                 <p>No messages yet</p>
               </div>
             ) : (
-              conversations.slice(0, 3).map((conversation) => (
-                <div key={`${conversation.other_user.id}-${conversation.pet.id}`} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                        <User size={20} className="text-gray-600" />
+              conversations.slice(0, 3).map((conversation) => {
+                console.log('[ClientDashboard] Rendering conversation:', conversation);
+                return (
+                  <div key={`${conversation.other_user?.id}-${conversation.pet?.id}`} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                          <User size={20} className="text-gray-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{conversation.other_user?.username || 'Unknown User'}</h4>
+                          <p className="text-sm text-gray-600">About: {conversation.pet_detail?.name || 'Unknown Pet'}</p>
+                          {conversation.latest_message && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {conversation.latest_message.content.substring(0, 50)}...
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{conversation.other_user.username}</h4>
-                        <p className="text-sm text-gray-600">About: {conversation.pet_detail.name}</p>
-                        {conversation.latest_message && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            {conversation.latest_message.content.substring(0, 50)}...
-                          </p>
-                        )}
-                      </div>
+                      {conversation.unread_count > 0 && (
+                        <span className="bg-[#FFCAB0] text-white text-xs rounded-full px-2 py-1">
+                          {conversation.unread_count}
+                        </span>
+                      )}
                     </div>
-                    {conversation.unread_count > 0 && (
-                      <span className="bg-[#FFCAB0] text-white text-xs rounded-full px-2 py-1">
-                        {conversation.unread_count}
-                      </span>
-                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

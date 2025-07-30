@@ -1,11 +1,11 @@
-// src/pages/dashboards/AdminDashboard.jsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import StatsCard from '../../components/dashboard/StatsCard';
 import { Users, DollarSign, FileText, CheckSquare } from 'lucide-react';
 import userService from '../../services/userService';
 import petService from '../../services/petService';
+import { useNotifications } from '../../context/NotificationContext';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -17,165 +17,99 @@ const AdminDashboard = () => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotifications();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch users
-      const usersData = await userService.getUsers();
-      const verificationRequests = await userService.getVerificationRequests({ status: 'pending' });
-      const postsData = await userService.getAdminPosts();
-      const paymentHistory = await petService.getPaymentHistory();
+      const [usersData, verificationRequests, postsData, paymentHistory] = await Promise.all([
+        userService.getUsers(),
+        userService.getVerificationRequests({ status: 'pending' }),
+        userService.getAdminPosts(),
+        petService.getPaymentHistory(),
+      ]);
 
-      // Calculate stats from real data
-      const totalRevenue = paymentHistory
-        .filter(payment => payment.status === 'VALID')
-        .reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+      const totalRevenue = paymentHistory && Array.isArray(paymentHistory)
+        ? paymentHistory
+            .filter(payment => payment.status === 'VALID')
+            .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0)
+        : 0;
 
       setStats({
-        totalUsers: usersData.length,
-        totalRevenue: totalRevenue,
-        totalPosts: postsData.length,
-        pendingVerifications: verificationRequests.length,
+        totalUsers: Array.isArray(usersData) ? usersData.length : 0,
+        totalRevenue,
+        totalPosts: Array.isArray(postsData) ? postsData.length : 0,
+        pendingVerifications: Array.isArray(verificationRequests) ? verificationRequests.length : 0,
       });
 
-      // Set recent data
-      setRecentUsers(usersData.slice(0, 5));
-      setRecentPosts(postsData.slice(0, 5));
+      setRecentUsers(Array.isArray(usersData) ? usersData.slice(0, 5) : []);
+      setRecentPosts(Array.isArray(postsData) ? postsData.slice(0, 5) : []);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      addNotification('error', error.message || 'Failed to load dashboard data. Please log in again.');
+      if (error.message.includes('Session expired')) {
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [addNotification, navigate]);
 
-  const statsCards = [
-    {
-      title: 'Total Users',
-      value: stats.totalUsers.toLocaleString(),
-      icon: Users,
-      change: null,
-      changeType: null,
-      link: '/dashboard/admin/users',
-    },
-    {
-      title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      change: null,
-      changeType: null,
-      link: '/dashboard/admin/revenue',
-    },
-    {
-      title: 'Total Posts',
-      value: stats.totalPosts.toLocaleString(),
-      icon: FileText,
-      change: null,
-      changeType: null,
-      link: '/dashboard/admin/posts',
-    },
-    {
-      title: 'Pending Verifications',
-      value: stats.pendingVerifications.toLocaleString(),
-      icon: CheckSquare,
-      change: null,
-      changeType: null,
-      link: '/dashboard/admin/verification',
-    },
-  ];
-
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFCAB0]"></div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Dashboard Overview</h1>
-            <p className="text-sm text-gray-600 mt-1">Welcome back! Here's what's happening with PetNest today.</p>
+    <DashboardLayout title="Admin Dashboard">
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatsCard title="Total Users" value={stats.totalUsers} icon={Users} />
+            <StatsCard title="Total Revenue" value={`$${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} />
+            <StatsCard title="Total Posts" value={stats.totalPosts} icon={FileText} />
+            <StatsCard title="Pending Verifications" value={stats.pendingVerifications} icon={CheckSquare} />
           </div>
-        </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {statsCards.map((stat, index) => (
-            <Link key={index} to={stat.link} className="block">
-              <StatsCard {...stat} />
-            </Link>
-          ))}
-        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4">Recent Users</h2>
+              {recentUsers.length > 0 ? (
+                <ul>
+                  {recentUsers.map(user => (
+                    <li key={user.id} className="mb-2">
+                      <Link to={`/admin/users/${user.id}`} className="text-blue-600 hover:underline">
+                        {user.username} ({user.email})
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No recent users available.</p>
+              )}
+            </div>
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Users</h2>
-            <div className="space-y-4">
-              {recentUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                      <Users size={16} className="text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{user.username}</p>
-                      <p className="text-xs text-gray-500">{user.email}</p>
-                    </div>
-                  </div>
-                  <Link to={`/dashboard/admin/users/${user.id}`} className="text-xs text-blue-600 hover:text-blue-800">
-                    View
-                  </Link>
-                </div>
-              ))}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
+              {recentPosts.length > 0 ? (
+                <ul>
+                  {recentPosts.map(post => (
+                    <li key={post.id} className="mb-2">
+                      <Link to={`/admin/posts/${post.id}`} className="text-blue-600 hover:underline">
+                        Post by {post.user?.username || 'Unknown'}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No recent posts available.</p>
+              )}
             </div>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Actions</h2>
-            <div className="space-y-4">
-              <Link
-                to="/dashboard/admin/verification"
-                className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <CheckSquare className="text-yellow-600" size={20} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Verification Requests</p>
-                    <p className="text-xs text-gray-600">{stats.pendingVerifications} pending</p>
-                  </div>
-                </div>
-                <span className="text-sm text-yellow-600">Review →</span>
-              </Link>
-              
-              <Link
-                to="/dashboard/admin/posts"
-                className="flex items-center justify-between p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <FileText className="text-blue-600" size={20} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Recent Posts</p>
-                    <p className="text-xs text-gray-600">{recentPosts.length} new posts</p>
-                  </div>
-                </div>
-                <span className="text-sm text-blue-600">View →</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </DashboardLayout>
   );
 };

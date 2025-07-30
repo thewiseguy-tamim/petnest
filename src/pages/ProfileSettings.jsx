@@ -1,29 +1,31 @@
-// src/pages/ProfileSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useNotifications } from '../context/NotificationContext';
 import { useForm } from 'react-hook-form';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
-import { Camera, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { Camera, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 
 const ProfileSettings = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, refreshUser, isAuthenticated, checkAuth } = useAuth();
+  const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(false);
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(user?.profile_picture);
-  const [userStatus, setUserStatus] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState(null);
+  const [userStatus, setUserStatus] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
     defaultValues: {
-      username: user?.username || '',
-      phone: user?.phone || '',
-      address: user?.address || '',
-      city: user?.city || '',
-      state: user?.state || '',
-      postcode: user?.postcode || '',
+      username: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      postcode: '',
     },
   });
 
@@ -34,96 +36,60 @@ const ProfileSettings = () => {
     setValue: setVerificationValue,
   } = useForm();
 
+  // Fetch user status on mount and when user changes
   useEffect(() => {
-    fetchUserStatus();
-  }, []);
+    if (isAuthenticated) {
+      fetchUserStatus();
+    }
+  }, [isAuthenticated]);
 
   const fetchUserStatus = async () => {
     try {
       const response = await api.get('/users/status/');
       setUserStatus(response.data);
-      setError(null); // Clear error on success
+
+      // If status is verified but local state doesn't reflect it, force update
+      if (response.data.verification_status === 'verified' && 
+          (!user?.verification_status || user.verification_status !== 'verified')) {
+        await checkAuth();
+      }
     } catch (error) {
       console.error('Failed to fetch user status:', error);
-      setError('Failed to load verification status. Please try again.');
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const onSubmit = async (data) => {
-    setLoading(true);
-    setError(null); // Clear previous errors
-    try {
-      const formData = new FormData();
-      Object.keys(data).forEach((key) => {
-        if (data[key]) {
-          formData.append(key, data[key]);
-        }
+  // Update form values when user data changes
+  useEffect(() => {
+    if (user) {
+      reset({
+        username: user.username || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        postcode: user.postcode || '',
       });
-      if (data.profile_picture?.[0]) {
-        formData.append('profile_picture', data.profile_picture[0]);
-      }
-
-      await updateProfile(formData);
-      alert('Profile updated successfully!');
-    } catch (error) {
-      console.error('Profile update error:', error);
-      setError('Failed to update profile. Please try again.');
-    } finally {
-      setLoading(false);
+      setImagePreview(user.profile_picture);
     }
-  };
+  }, [user, reset]);
 
-  const onVerificationSubmit = async (data) => {
-    setVerificationLoading(true);
-    setError(null); // Clear previous errors
-    try {
-      const formData = new FormData();
-      formData.append('nid_number', data.nid_number);
-      formData.append('nid_front', data.nid_front[0]);
-      formData.append('nid_back', data.nid_back[0]);
-      formData.append('phone', data.phone);
-      formData.append('address', data.address);
-      formData.append('city', data.city);
-      formData.append('state', data.state);
-      formData.append('postcode', data.postcode);
-
-      await api.post('/users/verification/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      setShowVerificationForm(false);
-      alert('Verification request submitted successfully! We will review your information soon.');
-      fetchUserStatus();
-    } catch (error) {
-      console.error('Verification submission error:', error);
-      const errorMessage =
-        error.response?.data?.nid_number?.[0] ||
-        error.response?.data?.detail ||
-        'Failed to submit verification. Please try again.';
-      setError(errorMessage);
-    } finally {
-      setVerificationLoading(false);
+  // Update verification form values
+  useEffect(() => {
+    if (showVerificationForm && user) {
+      setVerificationValue('phone', user.phone || '');
+      setVerificationValue('address', user.address || '');
+      setVerificationValue('city', user.city || '');
+      setVerificationValue('state', user.state || '');
+      setVerificationValue('postcode', user.postcode || '');
     }
-  };
+  }, [showVerificationForm, user, setVerificationValue]);
 
   const getVerificationStatusDisplay = () => {
-    const status = userStatus?.verification_status;
+    // Use userStatus if available, otherwise fall back to user data
+    const status = userStatus?.verification_status || user?.verification_status;
 
     switch (status) {
-      case 'approved':
+      case 'verified':
         return {
           icon: <CheckCircle className="w-5 h-5 text-green-500" />,
           text: 'Verified',
@@ -155,18 +121,131 @@ const ProfileSettings = () => {
   };
 
   const verificationStatus = getVerificationStatusDisplay();
-  const canSubmitVerification =
-    !userStatus?.is_verified && userStatus?.verification_status !== 'pending';
+  const isVerified = userStatus?.is_verified || user?.is_verified;
+  const currentStatus = userStatus?.verification_status || user?.verification_status;
+  const canSubmitVerification = !isVerified && currentStatus !== 'pending';
 
-  useEffect(() => {
-    if (showVerificationForm && user) {
-      setVerificationValue('phone', user.phone || '');
-      setVerificationValue('address', user.address || '');
-      setVerificationValue('city', user.city || '');
-      setVerificationValue('state', user.state || '');
-      setVerificationValue('postcode', user.postcode || '');
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [showVerificationForm, user, setVerificationValue]);
+  };
+
+  const onSubmit = async (data) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Send as JSON data, not FormData for regular fields
+      const updateData = {
+        username: data.username,
+        phone: data.phone || '',
+        address: data.address || '',
+        city: data.city || '',
+        state: data.state || '',
+        postcode: data.postcode || ''
+      };
+
+      await updateProfile(updateData);
+      await refreshUser();
+    } catch (error) {
+      console.error('Profile update error:', error);
+      setError('Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onVerificationSubmit = async (data) => {
+    setVerificationLoading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('nid_number', data.nid_number);
+      formData.append('nid_front', data.nid_front[0]);
+      formData.append('nid_back', data.nid_back[0]);
+      formData.append('phone', data.phone);
+      formData.append('address', data.address);
+      formData.append('city', data.city);
+      formData.append('state', data.state);
+      formData.append('postcode', data.postcode);
+
+      await api.post('/users/verification/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setShowVerificationForm(false);
+      addNotification({
+        type: 'success',
+        title: 'Verification Submitted',
+        message: 'Verification request submitted successfully! We will review your information soon.',
+        autoHide: true,
+        duration: 5000,
+      });
+
+      // Refresh both user data and status
+      await fetchUserStatus();
+      await refreshUser();
+    } catch (error) {
+      console.error('Verification submission error:', error);
+      const errorMessage =
+        error.response?.data?.nid_number?.[0] ||
+        error.response?.data?.detail ||
+        'Failed to submit verification. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+
+    try {
+      // Fetch status first
+      await fetchUserStatus();
+
+      // Then refresh auth context
+      await checkAuth();
+
+      // Finally refresh user
+      await refreshUser();
+
+      addNotification({
+        type: 'info',
+        title: 'Status Refreshed',
+        message: 'Verification status has been updated.',
+        autoHide: true,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+            <p className="text-gray-600 mb-6">Please log in to view and edit your profile settings.</p>
+            <Button onClick={() => window.location.href = '/login'}>
+              Go to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -194,7 +273,6 @@ const ProfileSettings = () => {
                   <Camera className="w-4 h-4 text-white" />
                   <input
                     type="file"
-                    {...register('profile_picture')}
                     onChange={handleImageChange}
                     className="sr-only"
                     accept="image/*"
@@ -249,8 +327,20 @@ const ProfileSettings = () => {
           </form>
         </div>
 
+        {/* Verification Status Section */}
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Verification Status</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Verification Status</h2>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+
           <div className="flex items-center justify-between">
             <div className={`flex items-center space-x-3 px-4 py-2 rounded-lg ${verificationStatus.bgColor}`}>
               {verificationStatus.icon}
@@ -272,7 +362,7 @@ const ProfileSettings = () => {
             )}
           </div>
 
-          {userStatus?.verification_status === 'pending' && (
+          {currentStatus === 'pending' && (
             <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
               <p className="text-sm text-yellow-800">
                 Your verification is being reviewed. This usually takes 1-2 business days.
@@ -280,7 +370,7 @@ const ProfileSettings = () => {
             </div>
           )}
 
-          {userStatus?.verification_status === 'rejected' && (
+          {currentStatus === 'rejected' && (
             <div className="mt-4 p-4 bg-red-50 rounded-lg">
               <p className="text-sm text-red-800">
                 Your verification was rejected. Please submit again with valid documents.
@@ -289,6 +379,7 @@ const ProfileSettings = () => {
           )}
         </div>
 
+        {/* Verification Form Modal */}
         {showVerificationForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">

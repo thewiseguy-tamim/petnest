@@ -1,8 +1,9 @@
-// src/context/NotificationContext.jsx
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useState, useCallback, useEffect, useContext } from 'react';
 
+// Create the context
 const NotificationContext = createContext();
 
+// Export the hook
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -11,45 +12,49 @@ export const useNotifications = () => {
   return context;
 };
 
+// Export the provider
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
-
+  
   // Load notifications from localStorage on mount
   useEffect(() => {
     const savedNotifications = localStorage.getItem('petnest_notifications');
     if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
+      try {
+        setNotifications(JSON.parse(savedNotifications));
+      } catch (error) {
+        console.error('Failed to parse saved notifications:', error);
+      }
     }
   }, []);
-
+  
   // Save notifications to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('petnest_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
+  const removeNotification = useCallback((id) => {
+    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+  }, []);
+
   const addNotification = useCallback((notification) => {
     const newNotification = {
-      id: Date.now().toString(),
-      timestamp: new Date(),
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+      timestamp: new Date().toISOString(),
       read: false,
       autoHide: true,
       duration: 5000,
       ...notification,
     };
-
     setNotifications((prev) => [newNotification, ...prev]);
-
+    
     // Auto-hide notification if enabled
     if (newNotification.autoHide) {
       setTimeout(() => {
         removeNotification(newNotification.id);
       }, newNotification.duration);
     }
-  }, []);
-
-  const removeNotification = useCallback((id) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
-  }, []);
+  }, [removeNotification]);
 
   const markAsRead = useCallback((id) => {
     setNotifications((prev) =>
