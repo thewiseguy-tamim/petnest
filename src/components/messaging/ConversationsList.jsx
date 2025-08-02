@@ -1,94 +1,87 @@
 // src/components/messaging/ConversationsList.jsx
 import React, { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { MessageCircle } from 'lucide-react';
 import messageService from '../../services/messageService';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { useAuth } from '../../hooks/useAuth';
 
-const ConversationsList = ({ onSelectConversation, selectedConversation }) => {
+const ConversationsList = () => {
+  const { user: _user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchConversations();
-  }, []);
+  const [lastFetched, setLastFetched] = useState(Date.now());
 
   const fetchConversations = async () => {
-    setLoading(true);
     try {
       const data = await messageService.getConversations();
+      console.log('[ConversationsList] Fetched conversations:', data);
       setConversations(data);
     } catch (error) {
-      console.error('Failed to fetch conversations:', error);
+      console.error('[ConversationsList] Error fetching conversations:', error.response?.data || error.message);
     } finally {
       setLoading(false);
+      setLastFetched(Date.now());
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchConversations();
+    const interval = setInterval(() => {
+      if (Date.now() - lastFetched >= 10000) {
+        fetchConversations();
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [lastFetched]);
 
-  if (conversations.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No conversations yet</p>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading conversations...</div>;
+  if (!conversations.length) return <div>No conversations found.</div>;
 
   return (
-    <div className="divide-y divide-gray-200">
-      {conversations.map((conversation) => {
-        const isSelected = selectedConversation?.id === conversation.id;
-        return (
-          <div
-            key={`${conversation.other_user.id}-${conversation.pet.id}`}
-            onClick={() => onSelectConversation(conversation)}
-            className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-              isSelected ? 'bg-blue-50' : ''
-            }`}
-          >
-            <div className="flex items-start space-x-3">
-              <img
-                src="/api/placeholder/48/48"
-                alt={conversation.other_user.username}
-                className="w-12 h-12 rounded-full"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-900 truncate">
-                    {conversation.other_user.username}
-                  </h3>
-                  {conversation.latest_message && (
-                    <p className="text-xs text-gray-500">
-                      {formatDistanceToNow(new Date(conversation.latest_message.timestamp), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  )}
-                </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  About: {conversation.pet_detail.name}
-                </p>
-                {conversation.latest_message && (
-                  <p className="text-sm text-gray-600 truncate mt-1">
-                    {conversation.latest_message.content}
-                  </p>
-                )}
-                {conversation.unread_count > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-[#FFCAB0] rounded-full mt-1">
-                    {conversation.unread_count}
-                  </span>
-                )}
+    <div className="max-w-4xl mx-auto p-4">
+      <h2 className="text-2xl font-bold mb-4">Your Conversations</h2>
+      <div className="space-y-4">
+        {conversations.map((conversation) => {
+          // Handle pet as number or object
+          const petId = typeof conversation.pet === 'object' && conversation.pet ? conversation.pet.id : conversation.pet;
+          const petName = typeof conversation.pet === 'object' && conversation.pet ? conversation.pet.name : conversation.pet_detail?.name || 'Unnamed Pet';
+
+          if (!petId) {
+            console.warn('[ConversationsList] Skipping conversation with invalid pet ID:', conversation);
+            return null;
+          }
+
+          const key = conversation.id || `${conversation.other_user.id}-${petId}`;
+          return (
+            <Link
+              key={key}
+              to={`/messages/${conversation.other_user.id}/${petId}`}
+              className="flex items-center p-4 bg-white rounded-lg shadow hover:bg-gray-50"
+            >
+              <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mr-4">
+                <span className="text-gray-600 font-medium">
+                  {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
               </div>
-            </div>
-          </div>
-        );
-      })}
+              <div className="flex-1">
+                <p className="font-medium text-gray-900">
+                  {conversation.other_user.username || 'Unknown User'}
+                </p>
+                <p className="text-gray-600">{petName}</p>
+                <p className="text-sm text-gray-500">
+                  {conversation.latest_message?.content || 'No messages yet'}
+                </p>
+              </div>
+              {conversation.unread_count > 0 && (
+                <span className="bg-[#FFCAB0] text-white rounded-full px-2 py-1 text-sm">
+                  {conversation.unread_count}
+                </span>
+              )}
+              <MessageCircle size={20} className="ml-4 text-gray-500" />
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 };

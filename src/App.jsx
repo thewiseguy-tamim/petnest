@@ -42,6 +42,9 @@ import Verification from './pages/Verification';
 import Favorites from './pages/Favorites';
 import PaymentHistory from './pages/PaymentHistory';
 
+// Messaging Components
+import ConversationDetail from './components/messaging/ConversationDetail';
+
 // Protected Route
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -95,6 +98,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Messages />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="messages/:userId/:petId"
+            element={
+              <ProtectedRoute>
+                <ConversationDetail />
               </ProtectedRoute>
             }
           />

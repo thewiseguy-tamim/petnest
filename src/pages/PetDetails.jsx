@@ -1,4 +1,4 @@
-// src/pages/PetDetails.jsx
+// src/components/pet/PetDetails.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Heart, Share2, MessageCircle } from 'lucide-react';
@@ -22,10 +22,11 @@ const PetDetails = () => {
   const fetchPetDetails = useCallback(async () => {
     try {
       const data = await petService.getPetDetails(id);
+      console.log('[PetDetails] Fetched pet:', data);
       setPet(data);
     } catch (error) {
       toast.error('Failed to fetch pet details');
-      console.error(error);
+      console.error('[PetDetails] Error:', error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
@@ -42,60 +43,59 @@ const PetDetails = () => {
       return;
     }
 
-    // Check if user is trying to contact themselves
-    if (pet?.owner?.id === user?.id) {
+    if (!pet?.id || !pet?.owner?.id) {
+      toast.error('Cannot contact owner: Invalid pet or owner data');
+      console.error('[PetDetails] Contact owner failed:', { petId: pet?.id, ownerId: pet?.owner?.id });
+      return;
+    }
+
+    if (pet.owner.id === user?.id) {
       toast.error("You can't message yourself!");
       return;
     }
 
     try {
-      // Check if conversation already exists
-      const conversations = await messageService.getConversations();
-      const existingConversation = conversations.find(
-        conv => conv.other_user.id === pet.owner.id && conv.pet.id === pet.id
-      );
-
-      if (existingConversation) {
-        setConversation({
-          other_user: pet.owner,
-          pet: pet,
-          pet_detail: pet,
-          latest_message: existingConversation.latest_message,
-          unread_count: existingConversation.unread_count
-        });
-      } else {
-        // Create a new conversation context
-        setConversation({
-          other_user: pet.owner,
-          pet: pet,
-          pet_detail: pet,
-          latest_message: null,
-          unread_count: 0
-        });
-      }
-      
+      const exists = await messageService.checkConversationExists(pet.owner.id, pet.id);
+      console.log('[PetDetails] Conversation exists:', exists);
+      const conversationData = {
+        other_user: {
+          id: pet.owner.id,
+          username: pet.owner.username || 'Unknown User',
+          profile_picture: pet.owner.profile_picture || null,
+        },
+        pet: {
+          id: pet.id,
+          name: pet.name || 'Unnamed Pet',
+        },
+        pet_detail: pet,
+        latest_message: exists ? (await messageService.getConversation(pet.owner.id, pet.id))[0] : null,
+        unread_count: exists
+          ? (await messageService.getConversation(pet.owner.id, pet.id)).filter(
+              m => !m.is_read && m.sender.id !== user.id
+            ).length
+          : 0,
+      };
+      console.log('[PetDetails] Conversation set:', conversationData);
+      setConversation(conversationData);
       setShowChat(true);
     } catch (error) {
-      console.error('Error setting up conversation:', error);
+      console.error('[PetDetails] Error setting up conversation:', error.response?.data || error.message);
       toast.error('Failed to open chat');
     }
   };
 
-  // Helper function to get owner initials safely
   const getOwnerInitials = () => {
-    if (!pet?.owner?.username) return 'U';
-    return pet.owner.username.charAt(0).toUpperCase();
+    return pet?.owner?.username?.charAt(0).toUpperCase() || 'U';
   };
 
-  // Helper function to get owner display name safely
   const getOwnerName = () => {
     return pet?.owner?.username || 'Unknown User';
   };
 
-  // Helper function to get owner join year safely
   const getOwnerJoinYear = () => {
-    if (!pet?.owner?.date_joined) return 'Unknown';
-    return new Date(pet.owner.date_joined).getFullYear();
+    return pet?.owner?.date_joined
+      ? new Date(pet.owner.date_joined).getFullYear()
+      : 'Unknown';
   };
 
   if (loading) return <LoadingSpinner />;
@@ -106,12 +106,15 @@ const PetDetails = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Image Gallery */}
             <div className="p-6">
               <div className="mb-4">
                 <img
-                  src={pet.images_data?.[selectedImage]?.image || pet.image || '/api/placeholder/600/400'}
-                  alt={pet.name}
+                  src={
+                    pet.images_data?.length > 0
+                      ? pet.images_data[selectedImage]?.image
+                      : pet.image || '/api/placeholder/600/400'
+                  }
+                  alt={pet.name || 'Pet'}
                   className="w-full h-96 object-cover rounded-lg"
                 />
               </div>
@@ -121,7 +124,7 @@ const PetDetails = () => {
                     <img
                       key={index}
                       src={img.image}
-                      alt={`${pet.name} ${index + 1}`}
+                      alt={`${pet.name || 'Pet'} ${index + 1}`}
                       onClick={() => setSelectedImage(index)}
                       className={`w-20 h-20 object-cover rounded-lg cursor-pointer ${
                         selectedImage === index ? 'ring-2 ring-[#FFCAB0]' : ''
@@ -132,12 +135,11 @@ const PetDetails = () => {
               )}
             </div>
 
-            {/* Pet Information */}
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{pet.name}</h1>
-                  <p className="text-xl text-gray-600">{pet.breed}</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{pet.name || 'Unnamed Pet'}</h1>
+                  <p className="text-xl text-gray-600">{pet.breed || 'Unknown Breed'}</p>
                 </div>
                 <div className="flex gap-2">
                   <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200">
@@ -149,7 +151,6 @@ const PetDetails = () => {
                 </div>
               </div>
 
-              {/* Price/Adoption Status */}
               <div className="mb-6">
                 {pet.is_for_adoption ? (
                   <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full">
@@ -157,40 +158,37 @@ const PetDetails = () => {
                   </div>
                 ) : (
                   <div className="text-3xl font-bold text-[#FFCAB0]">
-                    ${pet.price}
+                    ${pet.price || 'N/A'}
                   </div>
                 )}
               </div>
 
-              {/* Pet Details */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Age</p>
-                  <p className="font-semibold">{pet.age} years</p>
+                  <p className="font-semibold">{pet.age ? `${pet.age} years` : 'Unknown'}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Gender</p>
-                  <p className="font-semibold capitalize">{pet.gender}</p>
+                  <p className="font-semibold capitalize">{pet.gender || 'Unknown'}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Type</p>
-                  <p className="font-semibold capitalize">{pet.pet_type}</p>
+                  <p className="font-semibold capitalize">{pet.pet_type || 'Unknown'}</p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Posted</p>
                   <p className="font-semibold">
-                    {new Date(pet.created_at).toLocaleDateString()}
+                    {pet.created_at ? new Date(pet.created_at).toLocaleDateString() : 'Unknown'}
                   </p>
                 </div>
               </div>
 
-              {/* Description */}
               <div className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2">About {pet.name}</h3>
-                <p className="text-gray-600">{pet.description}</p>
+                <h3 className="font-semibold text-gray-900 mb-2">About {pet.name || 'Pet'}</h3>
+                <p className="text-gray-600">{pet.description || 'No description available'}</p>
               </div>
 
-              {/* Owner Info */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-900 mb-2">Posted by</h3>
                 <div className="flex items-center space-x-3">
@@ -206,14 +204,12 @@ const PetDetails = () => {
                 </div>
               </div>
 
-              {/* Location */}
               <div className="flex items-center text-gray-600 mb-6">
                 <MapPin size={20} className="mr-2" />
                 <span>Location will be shared after contacting owner</span>
               </div>
 
-              {/* Contact Button */}
-              {pet.availability && (
+              {pet.availability && pet.owner.id && (
                 <button
                   onClick={handleContactOwner}
                   className="w-full bg-[#FFCAB0] text-white py-3 rounded-lg hover:bg-[#FFB090] transition-colors flex items-center justify-center gap-2"
@@ -223,9 +219,9 @@ const PetDetails = () => {
                 </button>
               )}
 
-              {!pet.availability && (
+              {(!pet.availability || !pet.owner.id) && (
                 <div className="w-full bg-gray-200 text-gray-600 py-3 rounded-lg text-center">
-                  This pet is no longer available
+                  {!pet.availability ? 'This pet is no longer available' : 'Owner information not found'}
                 </div>
               )}
             </div>
@@ -233,7 +229,6 @@ const PetDetails = () => {
         </div>
       </div>
 
-      {/* Chat Window */}
       {showChat && conversation && (
         <ChatWindow
           conversation={conversation}

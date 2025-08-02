@@ -1,202 +1,122 @@
 // src/components/messaging/ChatWindow.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Paperclip, Minimize2 } from 'lucide-react';
-import MessageList from './MessageList';
-import MessageInput from './MessageInput';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Send } from 'lucide-react';
 import messageService from '../../services/messageService';
-import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../hooks/useAuth';
+import { toast } from 'react-hot-toast';
 
 const ChatWindow = ({ conversation, onClose }) => {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [connectionError, setConnectionError] = useState(false);
-  const messagesEndRef = useRef(null);
-  const { addNotification } = useNotifications();
   const { user } = useAuth();
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [lastFetched, setLastFetched] = useState(Date.now());
 
-  const markMessagesAsRead = React.useCallback(async () => {
-    if (!conversation) return;
-    try {
-      await messageService.markAsRead(
-        conversation.other_user.id,
-        conversation.pet.id
-      );
-    } catch (error) {
-      console.error('Failed to mark messages as read:', error);
+  const fetchMessages = useCallback(async () => {
+    if (!conversation.pet?.id) {
+      console.error('[ChatWindow] Invalid pet ID:', conversation);
+      toast.error('Cannot load conversation: Invalid pet data');
+      return;
     }
-  }, [conversation]);
-
-  const fetchMessages = React.useCallback(async () => {
-    setLoading(true);
-    setConnectionError(false);
     try {
-      // Only fetch messages if it's an existing conversation
-      if (conversation?.latest_message) {
-        const data = await messageService.getConversation(
-          conversation.other_user.id,
-          conversation.pet.id
-        );
-        setMessages(Array.isArray(data) ? data : []);
-        markMessagesAsRead();
-      } else {
-        // New conversation, no messages yet
-        setMessages([]);
+      const data = await messageService.getConversation(conversation.other_user.id, conversation.pet.id);
+      console.log('[ChatWindow] Fetched messages:', data);
+      setMessages(data);
+
+      const hasUnread = data.some(m => !m.is_read && m.sender.id !== user.id);
+      if (hasUnread) {
+        await messageService.markAsRead(conversation.other_user.id, conversation.pet.id);
       }
     } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      // If error is 404, it means no messages exist yet
-      if (error.response?.status === 404) {
-        setMessages([]);
-      } else {
-        setConnectionError(true);
-        addNotification({
-          type: 'error',
-          title: 'Connection Error',
-          message: 'Failed to load messages. Please try again.',
-        });
+      console.error('[ChatWindow] Error fetching messages:', error.response?.data || error.message);
+    }
+    setLastFetched(Date.now());
+  }, [conversation.other_user.id, conversation.pet?.id, user.id]);
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(() => {
+      if (Date.now() - lastFetched >= 10000) {
+        fetchMessages();
       }
-    } finally {
-      setLoading(false);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchMessages, lastFetched]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !conversation.pet?.id) {
+      toast.error('Cannot send message: Invalid input or pet data');
+      return;
     }
-  }, [conversation, addNotification, markMessagesAsRead]);
-
-  useEffect(() => {
-    if (conversation) {
-      fetchMessages();
-    }
-  }, [conversation, fetchMessages]);
-
-  useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
-    scrollToBottom();
-  }, [messages]);
-
-  const sendMessage = async (content) => {
-    if (!content.trim() || sending) return;
-
-    const tempMessage = {
-      id: Date.now(), // Temporary ID
-      content: content.trim(),
-      sender: user,
-      timestamp: new Date().toISOString(),
-      temporary: true
-    };
-
-    // Optimistically add message to UI
-    setMessages(prev => [...prev, tempMessage]);
-    setSending(true);
 
     try {
-      const newMessage = await messageService.sendMessage({
+      await messageService.sendMessage({
         receiver: conversation.other_user.username,
         pet: conversation.pet.id,
-        content: content.trim(),
+        content: newMessage,
       });
-      
-      // Replace temporary message with real one
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.temporary && msg.content === content.trim() 
-            ? newMessage 
-            : msg
-        ).filter(msg => !msg.temporary || msg.id === newMessage.id)
-      );
-      
-      // Show notification for first message
-      if (messages.length === 0) {
-        addNotification({
-          type: 'success',
-          title: 'Message Sent',
-          message: `Started conversation with ${conversation.other_user.username} about ${conversation.pet.name}`,
-        });
-      }
+      setNewMessage('');
+      await fetchMessages();
     } catch (error) {
-      // Remove temporary message on error
-      setMessages(prev => prev.filter(msg => !msg.temporary));
-      
-      addNotification({
-        type: 'error',
-        title: 'Message Failed',
-        message: 'Failed to send message. Please try again.',
-      });
-      console.error('Failed to send message:', error);
-    } finally {
-      setSending(false);
+      console.error('[ChatWindow] Error sending message:', error.response?.data || error.message);
+      toast.error('Failed to send message');
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleRetry = () => {
-    fetchMessages();
-  };
-
-  if (!conversation) return null;
+  if (!conversation.pet?.id) {
+    return null; // Don't render if pet.id is missing
+  }
 
   return (
-    <div className={`fixed bottom-0 right-4 w-96 bg-white rounded-t-lg shadow-xl border border-gray-200 flex flex-col z-50 transition-all duration-300 ${
-      isMinimized ? 'h-14' : 'h-[500px]'
-    }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#FFCAB0] to-[#FFB090] rounded-full flex items-center justify-center">
-            <span className="text-white font-medium">
-              {conversation.other_user.username.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{conversation.other_user.username}</h3>
-            <p className="text-xs text-gray-500">About: {conversation.pet_detail?.name || conversation.pet.name}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <Minimize2 size={16} />
-          </button>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <div className="fixed bottom-0 right-0 w-full sm:w-96 bg-white shadow-lg rounded-t-lg">
+      <div className="flex justify-between items-center p-4 bg-[#FFCAB0] text-white rounded-t-lg">
+        <h3 className="font-semibold">
+          {conversation.other_user.username} - {conversation.pet.name}
+        </h3>
+        <button onClick={onClose} className="hover:text-gray-200">
+          <X size={20} />
+        </button>
       </div>
-
-      {/* Messages and Input - Hidden when minimized */}
-      {!isMinimized && (
-        <>
-          {/* Connection Error Banner */}
-          {connectionError && (
-            <div className="bg-red-50 border-b border-red-200 p-3">
-              <div className="flex items-center justify-between">
-                <p className="text-red-600 text-sm">Connection error occurred</p>
-                <button
-                  onClick={handleRetry}
-                  className="text-red-600 text-sm font-medium hover:text-red-800"
-                >
-                  Retry
-                </button>
-              </div>
+      <div className="h-96 overflow-y-auto p-4">
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`mb-4 flex ${
+              message.sender.id === user.id ? 'justify-end' : 'justify-start'
+            }`}
+          >
+            <div
+              className={`max-w-xs p-3 rounded-lg ${
+                message.sender.id === user.id
+                  ? 'bg-[#FFCAB0] text-white'
+                  : 'bg-gray-200 text-gray-900'
+              }`}
+            >
+              <p>{message.content}</p>
+              <p className="text-xs mt-1 opacity-75">
+                {new Date(message.timestamp).toLocaleTimeString()}
+              </p>
             </div>
-          )}
-
-          {/* Messages */}
-          <MessageList messages={messages} loading={loading} />
-          <div ref={messagesEndRef} />
-
-          {/* Input */}
-          <MessageInput onSend={sendMessage} disabled={sending || connectionError} />
-        </>
-      )}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSendMessage} className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFCAB0]"
+          />
+          <button
+            type="submit"
+            className="p-2 bg-[#FFCAB0] text-white rounded-lg hover:bg-[#FFB090]"
+          >
+            <Send size={20} />
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

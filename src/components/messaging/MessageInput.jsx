@@ -1,6 +1,5 @@
-// src/components/messaging/MessageInput.jsx
 import React, { useState } from 'react';
-import { Send, Paperclip, Smile } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 const MessageInput = ({ onSend, disabled = false }) => {
   const [message, setMessage] = useState('');
@@ -23,13 +22,6 @@ const MessageInput = ({ onSend, disabled = false }) => {
   return (
     <form onSubmit={handleSubmit} className="border-t p-4 bg-white">
       <div className="flex items-center space-x-2">
-        <button
-          type="button"
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-          disabled={disabled}
-        >
-          <Paperclip size={20} />
-        </button>
         <div className="flex-1 relative">
           <input
             type="text"
@@ -39,15 +31,9 @@ const MessageInput = ({ onSend, disabled = false }) => {
             placeholder={disabled ? "Sending..." : "Type a message..."}
             disabled={disabled}
             className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-[#FFCAB0] focus:ring-1 focus:ring-[#FFCAB0] disabled:bg-gray-100 disabled:cursor-not-allowed"
+            aria-label="Type a message"
           />
         </div>
-        <button
-          type="button"
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-          disabled={disabled}
-        >
-          <Smile size={20} />
-        </button>
         <button
           type="submit"
           disabled={!message.trim() || disabled}
