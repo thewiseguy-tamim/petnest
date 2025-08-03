@@ -12,6 +12,7 @@ const ChatWindow = ({ conversation, onClose }) => {
   const [lastFetched, setLastFetched] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const prevMessagesLengthRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,8 +51,12 @@ const ChatWindow = ({ conversation, onClose }) => {
     return () => clearInterval(interval);
   }, [fetchMessages, lastFetched]);
 
+  // FIXED: Only scroll to bottom when new messages are added, not on every message change
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > prevMessagesLengthRef.current) {
+      scrollToBottom();
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const handleSendMessage = async (content) => {
@@ -97,7 +102,7 @@ const ChatWindow = ({ conversation, onClose }) => {
             <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
               <Phone size={16} className="text-gray-600" />
             </button>
-                        <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
+            <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
               <Video size={16} className="text-gray-600" />
             </button>
             <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
@@ -110,7 +115,7 @@ const ChatWindow = ({ conversation, onClose }) => {
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages - FIXED: Pass both messages and loading properly */}
       <MessageList messages={messages} loading={loading} />
       <div ref={messagesEndRef} />
 

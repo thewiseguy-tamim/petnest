@@ -63,22 +63,25 @@ const MessageList = ({ messages, loading }) => {
 
           {/* Messages for this date */}
           {dateMessages.map((message, index) => {
-            const isOwn = message.sender.id === user.id;
-            const showAvatar = !isOwn && (index === 0 || dateMessages[index - 1]?.sender.id !== message.sender.id);
+            // Check if the message sender's username matches current user's username
+            // If match = current user sent it (RIGHT side, blue)
+            // If no match = other user sent it (LEFT side, gray)
+            const isFromCurrentUser = message.sender?.username === user?.username;
+            const showAvatar = (index === 0 || dateMessages[index - 1]?.sender.id !== message.sender.id);
             const isLastInGroup = index === dateMessages.length - 1 || dateMessages[index + 1]?.sender.id !== message.sender.id;
             
             return (
               <div
                 key={message.id}
-                className={`flex items-end mb-1 ${isOwn ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : ''}`}
+                className={`flex items-end mb-1 ${isFromCurrentUser ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : ''}`}
               >
-                {/* Avatar for received messages (other user's messages) */}
-                {!isOwn && (
-                  <div className="w-8 mr-2">
+                {/* Avatar for OTHER user's messages - LEFT side */}
+                {!isFromCurrentUser && (
+                  <div className="w-8 mr-2 flex-shrink-0">
                     {showAvatar && (
                       <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                         <span className="text-gray-600 text-xs font-medium">
-                          {message.sender.username?.charAt(0).toUpperCase() || 'U'}
+                          {message.sender?.username?.charAt(0).toUpperCase() || 'U'}
                         </span>
                       </div>
                     )}
@@ -86,24 +89,37 @@ const MessageList = ({ messages, loading }) => {
                 )}
 
                 {/* Message bubble */}
-                <div className={`group relative max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                <div className={`group relative max-w-[70%]`}>
                   <div
                     className={`px-4 py-2 rounded-2xl ${
-                      isOwn
-                        ? 'bg-[#007bff] text-white' // User's own messages - blue on right
-                        : 'bg-[#f1f3f4] text-gray-900' // Other user's messages - gray on left
+                      isFromCurrentUser
+                        ? 'bg-blue-500 text-white' // Current user's messages - blue on RIGHT
+                        : 'bg-gray-200 text-gray-900' // Other user's messages - gray on LEFT
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                   
                   {/* Timestamp on hover */}
-                  <div className={`absolute -bottom-5 ${isOwn ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                  <div className={`absolute -bottom-5 ${isFromCurrentUser ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity`}>
                     <span className="text-xs text-gray-500">
                       {format(new Date(message.timestamp), 'h:mm a')}
                     </span>
                   </div>
                 </div>
+
+                {/* Avatar for CURRENT user's messages - RIGHT side */}
+                {isFromCurrentUser && (
+                  <div className="w-8 ml-2 flex-shrink-0">
+                    {showAvatar && (
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-medium">
+                          {user.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

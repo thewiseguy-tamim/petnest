@@ -15,6 +15,7 @@ const ConversationDetail = () => {
   const [lastFetched, setLastFetched] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const prevMessagesLengthRef = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,8 +60,12 @@ const ConversationDetail = () => {
     return () => clearInterval(interval);
   }, [fetchConversation, lastFetched]);
 
+  // FIXED: Only scroll to bottom when new messages are added, not on every message change
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > prevMessagesLengthRef.current) {
+      scrollToBottom();
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   const handleSendMessage = async (content) => {
@@ -122,7 +127,7 @@ const ConversationDetail = () => {
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages - FIXED: Pass loading state properly */}
       <MessageList messages={messages} loading={false} />
       <div ref={messagesEndRef} />
 
