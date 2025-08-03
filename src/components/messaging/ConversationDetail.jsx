@@ -43,7 +43,7 @@ const ConversationDetail = () => {
       }
     } catch (error) {
       console.error('[ConversationDetail] Error:', error.response?.data || error.message);
-      toast.error('Failed to load conversation');
+      
     } finally {
       setLoading(false);
     }

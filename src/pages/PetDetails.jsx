@@ -1,4 +1,3 @@
-// src/components/pet/PetDetails.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Calendar, Heart, Share2, MessageCircle } from 'lucide-react';
@@ -18,6 +17,7 @@ const PetDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [showChat, setShowChat] = useState(false);
   const [conversation, setConversation] = useState(null);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const fetchPetDetails = useCallback(async () => {
     try {
@@ -43,44 +43,53 @@ const PetDetails = () => {
       return;
     }
 
-    if (!pet?.id || !pet?.owner?.id) {
-      toast.error('Cannot contact owner: Invalid pet or owner data');
-      console.error('[PetDetails] Contact owner failed:', { petId: pet?.id, ownerId: pet?.owner?.id });
+    if (!user) {
+      toast.error('Please login to contact the owner');
+      navigate('/login');
       return;
     }
 
-    if (pet.owner.id === user?.id) {
+    // Check if the current user is the owner
+    if (String(pet.owner.id) === String(user.id)) {
       toast.error("You can't message yourself!");
       return;
     }
 
+    if (!pet?.id || !pet?.owner?.id) {
+      toast.error('Cannot contact owner: Invalid pet data');
+      return;
+    }
+
+    setChatLoading(true);
+
     try {
-      const exists = await messageService.checkConversationExists(pet.owner.id, pet.id);
-      console.log('[PetDetails] Conversation exists:', exists);
+      console.log('[PetDetails] Setting up conversation with owner:', pet.owner.id, 'for pet:', pet.id);
+      console.log('[PetDetails] Current user ID:', user.id);
+
+      // Create conversation object with proper structure
       const conversationData = {
         other_user: {
-          id: pet.owner.id,
+          id: pet.owner.id, // Keep the original ID format
           username: pet.owner.username || 'Unknown User',
           profile_picture: pet.owner.profile_picture || null,
         },
         pet: {
-          id: pet.id,
+          id: pet.id, // Keep the original ID format
           name: pet.name || 'Unnamed Pet',
         },
         pet_detail: pet,
-        latest_message: exists ? (await messageService.getConversation(pet.owner.id, pet.id))[0] : null,
-        unread_count: exists
-          ? (await messageService.getConversation(pet.owner.id, pet.id)).filter(
-              m => !m.is_read && m.sender.id !== user.id
-            ).length
-          : 0,
+        latest_message: null,
+        unread_count: 0,
       };
-      console.log('[PetDetails] Conversation set:', conversationData);
+
+      console.log('[PetDetails] Setting up conversation:', conversationData);
       setConversation(conversationData);
       setShowChat(true);
     } catch (error) {
-      console.error('[PetDetails] Error setting up conversation:', error.response?.data || error.message);
+      console.error('[PetDetails] Error setting up conversation:', error);
       toast.error('Failed to open chat');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -98,6 +107,7 @@ const PetDetails = () => {
       : 'Unknown';
   };
 
+  // Show loading while pet data is being fetched
   if (loading) return <LoadingSpinner />;
   if (!pet) return <div>Pet not found</div>;
 
@@ -212,10 +222,20 @@ const PetDetails = () => {
               {pet.availability && pet.owner.id && (
                 <button
                   onClick={handleContactOwner}
-                  className="w-full bg-[#FFCAB0] text-white py-3 rounded-lg hover:bg-[#FFB090] transition-colors flex items-center justify-center gap-2"
+                  disabled={chatLoading}
+                  className="w-full bg-[#FFCAB0] text-white py-3 rounded-lg hover:bg-[#FFB090] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <MessageCircle size={20} />
-                  Contact Owner
+                  {chatLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Opening Chat...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle size={20} />
+                      Contact Owner
+                    </>
+                  )}
                 </button>
               )}
 

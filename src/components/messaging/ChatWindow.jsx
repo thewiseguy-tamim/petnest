@@ -9,7 +9,6 @@ import MessageList from './MessageList';
 const ChatWindow = ({ conversation, onClose }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
-  const [lastFetched, setLastFetched] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
@@ -19,39 +18,79 @@ const ChatWindow = ({ conversation, onClose }) => {
   };
 
   const fetchMessages = useCallback(async () => {
-    if (!conversation.pet?.id) {
-      console.error('[ChatWindow] Invalid pet ID:', conversation);
-      toast.error('Cannot load conversation: Invalid pet data');
+    if (!user) {
+      console.log('[ChatWindow] User not loaded yet, waiting...');
       return;
     }
-    try {
-      const data = await messageService.getConversation(conversation.other_user.id, conversation.pet.id);
-      console.log('[ChatWindow] Fetched messages:', data);
-      setMessages(data);
 
-      const hasUnread = data.some(m => !m.is_read && m.sender.id !== user.id);
+    if (!conversation?.other_user?.id || !conversation?.pet?.id) {
+      console.error('[ChatWindow] Missing conversation data:', conversation);
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    // Convert IDs to strings to ensure consistency
+    const otherUserId = String(conversation.other_user.id);
+    const petId = String(conversation.pet.id);
+
+    console.log('[ChatWindow] fetchMessages called');
+    console.log('  - otherUserId:', otherUserId);
+    console.log('  - petId:', petId);
+    console.log('  - current user ID:', user?.id);
+
+    try {
+      // Call the API with the correct parameters
+      const messagesData = await messageService.getConversation(otherUserId, petId);
+      console.log('[ChatWindow] Messages fetched:', messagesData);
+      
+      // Ensure we have an array
+      const messagesArray = Array.isArray(messagesData) ? messagesData : [];
+      setMessages(messagesArray);
+
+      // Mark unread messages as read
+      const hasUnread = messagesArray.some((m) => !m.is_read && m.sender.id !== user.id);
       if (hasUnread) {
-        await messageService.markAsRead(conversation.other_user.id, conversation.pet.id);
+        try {
+          await messageService.markAsRead(otherUserId, petId);
+        } catch (markReadError) {
+          console.warn('[ChatWindow] Failed to mark as read:', markReadError);
+        }
       }
     } catch (error) {
-      console.error('[ChatWindow] Error fetching messages:', error.response?.data || error.message);
+      console.error('[ChatWindow] Error fetching messages:', error);
+      console.error('[ChatWindow] Error details:', error.response?.data || error.message);
+      
+      // If it's a 404, it means no messages exist yet - that's okay
+      if (error.response?.status === 404) {
+        setMessages([]);
+      } 
     } finally {
       setLoading(false);
     }
-    setLastFetched(Date.now());
-  }, [conversation.other_user.id, conversation.pet?.id, user.id]);
+  }, [conversation, user]);
 
+  // Initial fetch when component mounts or user/conversation changes
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(() => {
-      if (Date.now() - lastFetched >= 10000) {
-        fetchMessages();
-      }
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [fetchMessages, lastFetched]);
+    if (user && conversation) {
+      console.log('[ChatWindow] Initial fetch triggered');
+      fetchMessages();
+    }
+  }, [user, conversation, fetchMessages]);
 
-  // FIXED: Only scroll to bottom when new messages are added, not on every message change
+  // Polling for new messages
+  useEffect(() => {
+    if (!user || !conversation) return;
+
+    const interval = setInterval(() => {
+      console.log('[ChatWindow] Polling for new messages');
+      fetchMessages();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchMessages, user, conversation]);
+
+  // Scroll to bottom when new messages are added
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
       scrollToBottom();
@@ -60,17 +99,27 @@ const ChatWindow = ({ conversation, onClose }) => {
   }, [messages]);
 
   const handleSendMessage = async (content) => {
-    if (!conversation.pet?.id) {
-      toast.error('Cannot send message: Invalid pet data');
+    if (!content.trim()) {
+      return;
+    }
+
+    const receiverUsername = conversation?.other_user?.username;
+    const petId = conversation?.pet?.id;
+
+    if (!receiverUsername || !petId) {
+      toast.error('Cannot send message: Invalid conversation data');
       return;
     }
 
     try {
+      console.log('[ChatWindow] Sending message...');
       await messageService.sendMessage({
-        receiver: conversation.other_user.username,
-        pet: conversation.pet.id,
+        receiver: receiverUsername,
+        pet: parseInt(petId),
         content: content,
       });
+
+      console.log('[ChatWindow] Message sent, refreshing...');
       await fetchMessages();
     } catch (error) {
       console.error('[ChatWindow] Error sending message:', error.response?.data || error.message);
@@ -78,9 +127,20 @@ const ChatWindow = ({ conversation, onClose }) => {
     }
   };
 
-  if (!conversation.pet?.id) {
-    return null;
+  const petName = conversation?.pet?.name || 'Unknown Pet';
+  const otherUsername = conversation?.other_user?.username || 'Unknown User';
+
+  if (!conversation?.other_user?.id || !conversation?.pet?.id) {
+    return (
+      <div className="fixed bottom-0 right-4 w-96 h-[600px] bg-white shadow-2xl rounded-t-lg flex flex-col">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">Invalid conversation data</div>
+        </div>
+      </div>
+    );
   }
+
+  console.log('[ChatWindow] Render - messages:', messages.length, 'loading:', loading);
 
   return (
     <div className="fixed bottom-0 right-4 w-96 h-[600px] bg-white shadow-2xl rounded-t-lg flex flex-col">
@@ -90,12 +150,12 @@ const ChatWindow = ({ conversation, onClose }) => {
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
               <span className="text-gray-600 font-medium text-sm">
-                {conversation.other_user.username?.charAt(0).toUpperCase() || 'U'}
+                {otherUsername.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">{conversation.pet.name}</h3>
-              <p className="text-xs text-gray-600">{conversation.other_user.username}</p>
+              <h3 className="font-semibold text-gray-900">{petName}</h3>
+              <p className="text-xs text-gray-600">{otherUsername}</p>
             </div>
           </div>
           <div className="flex items-center space-x-1">
@@ -115,7 +175,7 @@ const ChatWindow = ({ conversation, onClose }) => {
         </div>
       </div>
 
-      {/* Messages - FIXED: Pass both messages and loading properly */}
+      {/* Messages */}
       <MessageList messages={messages} loading={loading} />
       <div ref={messagesEndRef} />
 
