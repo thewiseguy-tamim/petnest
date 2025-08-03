@@ -105,7 +105,7 @@ function App() {
             path="messages/:userId/:petId"
             element={
               <ProtectedRoute>
-                <ConversationDetail />
+                <Messages />
               </ProtectedRoute>
             }
           />

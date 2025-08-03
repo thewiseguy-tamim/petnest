@@ -1,14 +1,32 @@
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const MessageList = ({ messages, loading }) => {
   const { user } = useAuth();
 
+  const formatMessageDate = (date) => {
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const groupMessagesByDate = (messages) => {
+    const groups = {};
+    messages.forEach((message) => {
+      const date = formatMessageDate(new Date(message.timestamp));
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(message);
+    });
+    return groups;
+  };
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center bg-white">
         <LoadingSpinner />
       </div>
     );
@@ -16,7 +34,7 @@ const MessageList = ({ messages, loading }) => {
 
   if (!user) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div className="flex-1 flex items-center justify-center text-gray-500 bg-white">
         <p>Please log in to view messages.</p>
       </div>
     );
@@ -24,40 +42,73 @@ const MessageList = ({ messages, loading }) => {
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-gray-500">
+      <div className="flex-1 flex items-center justify-center text-gray-500 bg-white">
         <p>No messages yet. Start the conversation!</p>
       </div>
     );
   }
 
+  const groupedMessages = groupMessagesByDate(messages);
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((message) => {
-        const isOwn = message.sender.id === user.id;
-        return (
-          <div
-            key={message.id}
-            className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 break-words ${
-                isOwn
-                  ? 'bg-[#FFCAB0] text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}
-            >
-              <p className="text-sm">{message.content}</p>
-              <p
-                className={`text-xs mt-1 ${
-                  isOwn ? 'text-white/70' : 'text-gray-500'
-                }`}
-              >
-                {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-              </p>
-            </div>
+    <div className="flex-1 overflow-y-auto px-4 py-4 bg-white">
+      {Object.entries(groupedMessages).map(([date, dateMessages]) => (
+        <div key={date}>
+          {/* Date Separator */}
+          <div className="flex items-center justify-center my-4">
+            <div className="flex-1 h-px bg-gray-200"></div>
+            <span className="px-3 text-xs font-medium text-gray-500">{date}</span>
+            <div className="flex-1 h-px bg-gray-200"></div>
           </div>
-        );
-      })}
+
+          {/* Messages for this date */}
+          {dateMessages.map((message, index) => {
+            const isOwn = message.sender.id === user.id;
+            const showAvatar = !isOwn && (index === 0 || dateMessages[index - 1]?.sender.id !== message.sender.id);
+            const isLastInGroup = index === dateMessages.length - 1 || dateMessages[index + 1]?.sender.id !== message.sender.id;
+            
+            return (
+              <div
+                key={message.id}
+                className={`flex items-end mb-1 ${isOwn ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : ''}`}
+              >
+                {/* Avatar for received messages (other user's messages) */}
+                {!isOwn && (
+                  <div className="w-8 mr-2">
+                    {showAvatar && (
+                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                        <span className="text-gray-600 text-xs font-medium">
+                          {message.sender.username?.charAt(0).toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Message bubble */}
+                <div className={`group relative max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                  <div
+                    className={`px-4 py-2 rounded-2xl ${
+                      isOwn
+                        ? 'bg-[#007bff] text-white' // User's own messages - blue on right
+                        : 'bg-[#f1f3f4] text-gray-900' // Other user's messages - gray on left
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  </div>
+                  
+                  {/* Timestamp on hover */}
+                  <div className={`absolute -bottom-5 ${isOwn ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(message.timestamp), 'h:mm a')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 };
