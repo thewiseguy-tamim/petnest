@@ -23,6 +23,7 @@ const ClientPosts = () => {
     setLoading(true);
     try {
       const data = await userService.getUserPosts();
+      console.log('[ClientPosts] Fetched posts:', data); // Debug log
       setPosts(data);
     } catch (error) {
       console.error('Failed to fetch posts:', error);
@@ -38,7 +39,27 @@ const ClientPosts = () => {
     }
   };
 
-  const handleDelete = async (postId, petId) => {
+  // Helper function to get pet ID from post
+  const getPetId = (post) => {
+    if (post.pet?.id) return post.pet.id;
+    if (post.pet_id) return post.pet_id;
+    if (typeof post.pet === 'number') return post.pet;
+    return null;
+  };
+
+  const handleDelete = async (postId, post) => {
+    const petId = getPetId(post);
+    if (!petId) {
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Cannot delete post: Pet ID not found.',
+        autoHide: true,
+        duration: 5000
+      });
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this listing?')) {
       try {
         await petService.deletePet(petId);
@@ -131,69 +152,80 @@ const ClientPosts = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPosts.map((post) => (
-              <div key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="aspect-w-16 aspect-h-12">
-                  <img
-                    src={post.pet?.images_data?.[0]?.image || '/api/placeholder/400/300'}
-                    alt={post.pet?.name}
-                    className="w-full h-48 object-cover"
-                  />
-                </div>
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{post.pet?.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {post.pet?.breed} • {post.pet?.age} years old
-                      </p>
+            {filteredPosts.map((post) => {
+              const petId = getPetId(post);
+              return (
+                <div key={post.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="aspect-w-16 aspect-h-12">
+                    <img
+                      src={post.pet?.images_data?.[0]?.image || '/api/placeholder/400/300'}
+                      alt={post.pet?.name}
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">{post.pet?.name}</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {post.pet?.breed} • {post.pet?.age} years old
+                        </p>
+                      </div>
+                      <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                        post.pet?.availability 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {post.pet?.availability ? 'Available' : 'Unavailable'}
+                      </span>
                     </div>
-                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                      post.pet?.availability 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {post.pet?.availability ? 'Available' : 'Unavailable'}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span className="flex items-center">
-                      <Clock size={14} className="mr-1" />
-                      {formatDate(post.created_at)}
-                    </span>
-                    <span className="flex items-center">
-                      <Eye size={14} className="mr-1" />
-                      {post.views || 0} views
-                    </span>
-                  </div>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span className="flex items-center">
+                        <Clock size={14} className="mr-1" />
+                        {formatDate(post.created_at)}
+                      </span>
+                      <span className="flex items-center">
+                        <Eye size={14} className="mr-1" />
+                        {post.views || 0} views
+                      </span>
+                    </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <Link
-                      to={`/pets/${post.pet?.id}`}
-                      className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium flex items-center"
-                    >
-                      <Eye size={16} className="mr-1" />
-                      View
-                    </Link>
-                    <Link
-                      to={`/pets/${post.pet?.id}/edit`}
-                      className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center"
-                    >
-                      <Edit2 size={16} className="mr-1" />
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(post.id, post.pet?.id)}
-                      className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
-                    >
-                      <Trash2 size={16} className="mr-1" />
-                      Delete
-                    </button>
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      {petId ? (
+                        <>
+                          <Link
+                            to={`/pets/${petId}`}
+                            className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium flex items-center"
+                          >
+                            <Eye size={16} className="mr-1" />
+                            View
+                          </Link>
+                          <Link
+                            to={`/pets/${petId}/edit`}
+                            className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center"
+                          >
+                            <Edit2 size={16} className="mr-1" />
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(post.id, post)}
+                            className="text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
+                          >
+                            <Trash2 size={16} className="mr-1" />
+                            Delete
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-400">
+                          Pet data unavailable
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

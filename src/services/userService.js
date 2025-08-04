@@ -1,3 +1,4 @@
+// src/services/userService.js
 import apiClient from './api';
 
 const userService = {
@@ -452,7 +453,46 @@ const userService = {
         console.warn('[userService.getUserPosts] Expected array, got:', response.data);
         return [];
       }
-      return response.data;
+      
+      console.log('[userService.getUserPosts] Raw posts:', response.data);
+      
+      // Enrich posts with pet details
+      const enrichedPosts = await Promise.all(
+        response.data.map(async (post) => {
+          try {
+            // Handle different possible data structures
+            let petId = null;
+            if (post.pet) {
+              petId = typeof post.pet === 'object' ? post.pet.id : post.pet;
+            } else if (post.pet_id) {
+              petId = post.pet_id;
+            }
+            
+            if (petId) {
+              const petResponse = await apiClient.get(`/pets/${petId}/`);
+              console.log(`[userService.getUserPosts] Fetched pet details for pet ${petId}:`, petResponse.data);
+              return {
+                ...post,
+                pet: petResponse.data,
+                pet_id: petId // Ensure pet_id is always available
+              };
+            } else {
+              console.warn(`[userService.getUserPosts] No pet ID found for post ${post.id}`);
+              return post;
+            }
+          } catch (error) {
+            console.error(`[userService.getUserPosts] Error fetching pet details for post ${post.id}:`, error);
+            // Return the post with whatever data we have
+            return {
+              ...post,
+              pet_id: post.pet_id || (typeof post.pet === 'number' ? post.pet : null)
+            };
+          }
+        })
+      );
+      
+      console.log('[userService.getUserPosts] Enriched posts:', enrichedPosts);
+      return enrichedPosts;
     } catch (error) {
       if (error.response?.status === 401) {
         try {
@@ -462,7 +502,46 @@ const userService = {
             console.warn('[userService.getUserPosts] Retry - Expected array, got:', retryResponse.data);
             return [];
           }
-          return retryResponse.data;
+          
+          console.log('[userService.getUserPosts] Retry - Raw posts:', retryResponse.data);
+          
+          // Enrich posts with pet details
+          const enrichedPosts = await Promise.all(
+            retryResponse.data.map(async (post) => {
+              try {
+                // Handle different possible data structures
+                let petId = null;
+                if (post.pet) {
+                  petId = typeof post.pet === 'object' ? post.pet.id : post.pet;
+                } else if (post.pet_id) {
+                  petId = post.pet_id;
+                }
+                
+                if (petId) {
+                  const petResponse = await apiClient.get(`/pets/${petId}/`);
+                  console.log(`[userService.getUserPosts] Retry - Fetched pet details for pet ${petId}:`, petResponse.data);
+                  return {
+                    ...post,
+                    pet: petResponse.data,
+                    pet_id: petId // Ensure pet_id is always available
+                  };
+                } else {
+                  console.warn(`[userService.getUserPosts] Retry - No pet ID found for post ${post.id}`);
+                  return post;
+                }
+              } catch (error) {
+                console.error(`[userService.getUserPosts] Retry - Error fetching pet details for post ${post.id}:`, error);
+                // Return the post with whatever data we have
+                return {
+                  ...post,
+                  pet_id: post.pet_id || (typeof post.pet === 'number' ? post.pet : null)
+                };
+              }
+            })
+          );
+          
+          console.log('[userService.getUserPosts] Retry - Enriched posts:', enrichedPosts);
+          return enrichedPosts;
         } catch (refreshError) {
           console.error('[userService.getUserPosts] Refresh token failed:', refreshError);
           throw new Error('Session expired. Please log in again.');

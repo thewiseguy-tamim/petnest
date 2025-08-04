@@ -1,4 +1,3 @@
-// src/pages/dashboards/ClientDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
@@ -40,6 +39,7 @@ const ClientDashboard = () => {
     try {
       // Fetch user posts
       const posts = await userService.getUserPosts();
+      console.log('[ClientDashboard] User posts:', posts); // Debug log
       setUserPosts(posts);
 
       // Fetch conversations
@@ -63,6 +63,14 @@ const ClientDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to get pet ID from post
+  const getPetId = (post) => {
+    if (post.pet?.id) return post.pet.id;
+    if (post.pet_id) return post.pet_id;
+    if (typeof post.pet === 'number') return post.pet;
+    return null;
   };
 
   if (loading) {
@@ -193,51 +201,61 @@ const ClientDashboard = () => {
                 </div>
               ) : (
                 <>
-                  {userPosts.slice(0, 4).map((post) => (
-                    <div key={post.id} className="p-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={post.pet?.images_data?.[0]?.image || '/api/placeholder/80/80'}
-                            alt={post.pet?.name}
-                            className="w-20 h-20 rounded-lg object-cover"
-                          />
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900">{post.pet?.name}</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                              {post.pet?.breed} • {post.pet?.age} years old
-                            </p>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <span className="text-xs text-gray-500 flex items-center">
-                                <Clock size={14} className="mr-1" />
-                                {formatDate(post.created_at)}
-                              </span>
-                              <span className="text-xs text-gray-500 flex items-center">
-                                <Eye size={14} className="mr-1" />
-                                {post.views || 0} views
-                              </span>
+                  {userPosts.slice(0, 4).map((post) => {
+                    const petId = getPetId(post);
+                    return (
+                      <div key={post.id} className="p-6 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <img
+                              src={post.pet?.images_data?.[0]?.image || '/api/placeholder/80/80'}
+                              alt={post.pet?.name}
+                              className="w-20 h-20 rounded-lg object-cover"
+                            />
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-gray-900">{post.pet?.name}</h3>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {post.pet?.breed} • {post.pet?.age} years old
+                              </p>
+                              <div className="flex items-center space-x-4 mt-2">
+                                <span className="text-xs text-gray-500 flex items-center">
+                                  <Clock size={14} className="mr-1" />
+                                  {formatDate(post.created_at)}
+                                </span>
+                                <span className="text-xs text-gray-500 flex items-center">
+                                  <Eye size={14} className="mr-1" />
+                                  {post.views || 0} views
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end space-y-2">
-                          <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                            post.pet?.availability 
-                              ? 'bg-green-100 text-green-700' 
-                              : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {post.pet?.availability ? 'Available' : 'Unavailable'}
-                          </span>
-                          <Link
-                            to={`/pets/${post.pet?.id}/edit`}
-                            className="text-sm text-[#FFCAB0] hover:text-[#FFB090] flex items-center"
-                          >
-                            <Edit2 size={14} className="mr-1" />
-                            Edit
-                          </Link>
+                          <div className="flex flex-col items-end space-y-2">
+                            <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                              post.pet?.availability 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {post.pet?.availability ? 'Available' : 'Unavailable'}
+                            </span>
+                            {petId ? (
+                              <Link
+                                to={`/pets/${petId}/edit`}
+                                className="text-sm text-[#FFCAB0] hover:text-[#FFB090] flex items-center"
+                              >
+                                <Edit2 size={14} className="mr-1" />
+                                Edit
+                              </Link>
+                            ) : (
+                              <span className="text-sm text-gray-400 flex items-center">
+                                <Edit2 size={14} className="mr-1" />
+                                Edit unavailable
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {userPosts.length > 4 && (
                     <div className="p-4 text-center border-t">
                       <Link
@@ -276,39 +294,44 @@ const ClientDashboard = () => {
                   </p>
                 </div>
               ) : (
-                conversations.slice(0, 5).map((conversation) => (
-                  <Link
-                    key={`${conversation.other_user?.id}-${conversation.pet?.id}`}
-                    to={`/messages/${conversation.other_user?.id}/${conversation.pet?.id}`}
-                    className="block p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User size={20} className="text-gray-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {conversation.other_user?.username || 'Unknown User'}
-                          </h4>
-                          {conversation.unread_count > 0 && (
-                            <span className="bg-[#FFCAB0] text-white text-xs rounded-full px-2 py-0.5 ml-2">
-                              {conversation.unread_count}
-                            </span>
+                conversations.slice(0, 5).map((conversation, index) => {
+                  // Create a unique key using multiple identifiers
+                  const conversationKey = `conv-${conversation.other_user?.id || 'unknown'}-${conversation.pet?.id || conversation.pet_detail?.id || 'nopet'}-${index}`;
+                  
+                  return (
+                    <Link
+                      key={conversationKey}
+                      to={`/messages/${conversation.other_user?.id}/${conversation.pet?.id || conversation.pet_detail?.id}`}
+                      className="block p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                          <User size={20} className="text-gray-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-gray-900 truncate">
+                              {conversation.other_user?.username || 'Unknown User'}
+                            </h4>
+                            {conversation.unread_count > 0 && (
+                              <span className="bg-[#FFCAB0] text-white text-xs rounded-full px-2 py-0.5 ml-2">
+                                {conversation.unread_count}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1 truncate">
+                            Re: {conversation.pet_detail?.name || conversation.pet?.name || 'Unknown Pet'}
+                          </p>
+                          {conversation.latest_message && (
+                            <p className="text-xs text-gray-500 mt-1 truncate">
+                              {conversation.latest_message.content}
+                            </p>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-1 truncate">
-                          Re: {conversation.pet_detail?.name || 'Unknown Pet'}
-                        </p>
-                        {conversation.latest_message && (
-                          <p className="text-xs text-gray-500 mt-1 truncate">
-                            {conversation.latest_message.content}
-                          </p>
-                        )}
                       </div>
-                    </div>
-                  </Link>
-                ))
+                    </Link>
+                  );
+                })
               )}
             </div>
           </div>
@@ -320,7 +343,7 @@ const ClientDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
               to="/pets/create"
-                            className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <Plus className="w-5 h-5 mr-2 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Create New Listing</span>

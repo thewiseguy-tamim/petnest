@@ -1,3 +1,4 @@
+// src/components/pets/EditPetForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -5,17 +6,20 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
+import { Upload, X } from 'lucide-react';
 import petService from '../../services/petService';
 import { useNotifications } from '../../context/NotificationContext';
 
 const EditPetForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // Added to debug the current route
+  const location = useLocation();
   const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pet, setPet] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [newImage, setNewImage] = useState(null);
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm();
 
   const isForAdoption = watch('is_for_adoption');
@@ -29,22 +33,31 @@ const EditPetForm = () => {
       addNotification({
         type: 'error',
         title: 'Invalid Pet ID',
-        message: 'No valid pet ID provided. Please check the URL or navigation source.',
+        message: 'No valid pet ID provided. Redirecting to your posts...',
+        autoHide: true,
+        duration: 3000
       });
-      // Temporarily render error state instead of redirecting for debugging
-      setLoading(false);
+      setTimeout(() => {
+        navigate('/dashboard/client/posts');
+      }, 1000);
       return;
     }
 
     console.log('[EditPetForm] Fetching pet details for ID:', id);
     fetchPetDetails();
-  }, [id, location.pathname]);
+  }, [id, location.pathname, navigate, addNotification]);
 
   const fetchPetDetails = async () => {
     try {
       const data = await petService.getPetDetails(id);
       console.log('[EditPetForm.fetchPetDetails] Pet data:', data);
       setPet(data);
+      
+      // Set existing image as preview
+      if (data.images_data && data.images_data.length > 0) {
+        setImagePreview(data.images_data[0].image);
+      }
+      
       reset({
         name: data.name || '',
         pet_type: data.pet_type || '',
@@ -68,15 +81,36 @@ const EditPetForm = () => {
         message: error.response?.status === 404 
           ? 'Pet not found. It may have been deleted or does not exist.'
           : 'Failed to load pet details.',
+        autoHide: true,
+        duration: 5000
       });
-      // Redirect only on 404 or specific errors
       if (error.response?.status === 404) {
-        navigate('/');
+        setTimeout(() => {
+          navigate('/dashboard/client/posts');
+        }, 1000);
       }
     } finally {
       setLoading(false);
       console.log('[EditPetForm.fetchPetDetails] Loading completed, loading:', false);
     }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      console.log('[EditPetForm.handleImageChange] Selected image:', file.name);
+      setNewImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(pet?.images_data?.[0]?.image || null);
+    setNewImage(null);
   };
 
   const onSubmit = async (data) => {
@@ -95,13 +129,30 @@ const EditPetForm = () => {
         availability: data.availability,
       };
 
-      console.log('[EditPetForm.onSubmit] Submitting petData:', petData);
-      await petService.updatePet(id, petData);
+      let imageToUpload = newImage;
+      
+      // If no new image selected but backend requires one, fetch the existing image
+      if (!imageToUpload && pet.images_data?.[0]?.image) {
+        try {
+          const response = await fetch(pet.images_data[0].image);
+          const blob = await response.blob();
+          imageToUpload = new File([blob], 'existing-image.jpg', { type: 'image/jpeg' });
+          console.log('[EditPetForm.onSubmit] Using existing image as file');
+        } catch (error) {
+          console.error('[EditPetForm.onSubmit] Failed to fetch existing image:', error);
+        }
+      }
+
+      console.log('[EditPetForm.onSubmit] Submitting petData:', petData, 'with image:', imageToUpload);
+      
+      await petService.updatePet(id, petData, imageToUpload);
 
       addNotification({
         type: 'success',
         title: 'Pet Updated',
         message: 'Pet listing has been updated successfully.',
+        autoHide: true,
+        duration: 5000
       });
 
       navigate(`/pets/${id}`);
@@ -115,6 +166,8 @@ const EditPetForm = () => {
         type: 'error',
         title: 'Update Failed',
         message: error.message || 'Failed to update pet listing. Please try again.',
+        autoHide: true,
+        duration: 5000
       });
     } finally {
       setSubmitting(false);
@@ -124,7 +177,11 @@ const EditPetForm = () => {
 
   if (loading) {
     console.log('[EditPetForm] Rendering loading state');
-    return <LoadingSpinner />;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   if (!id || id === 'undefined') {
@@ -133,14 +190,8 @@ const EditPetForm = () => {
       <div className="text-center py-8">
         <h2 className="text-xl font-semibold text-red-600">Invalid Pet ID</h2>
         <p className="mt-2 text-gray-600">
-          No valid pet ID was provided. Please check the URL or try again.
+          Redirecting to your posts...
         </p>
-        <Button
-          onClick={() => navigate('/')}
-          className="mt-4"
-        >
-          Back to Home
-        </Button>
       </div>
     );
   }
@@ -154,10 +205,10 @@ const EditPetForm = () => {
           The pet you are trying to edit does not exist or has been deleted.
         </p>
         <Button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard/client/posts')}
           className="mt-4"
         >
-          Back to Home
+          Back to My Posts
         </Button>
       </div>
     );
@@ -250,6 +301,53 @@ const EditPetForm = () => {
         )}
       </div>
 
+      {/* Image Upload Section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Pet Photo
+        </label>
+        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+          <div className="space-y-1 text-center">
+            {imagePreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="mx-auto h-32 w-32 object-cover rounded-lg"
+                />
+                {newImage && (
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+            )}
+            <div className="flex text-sm text-gray-600">
+              <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#FFCAB0] hover:text-[#FFB090] focus-within:outline-none">
+                <span>{imagePreview ? 'Change photo' : 'Upload a photo'}</span>
+                <input
+                  type="file"
+                  onChange={handleImageChange}
+                  className="sr-only"
+                  accept="image/*"
+                />
+              </label>
+              <p className="pl-1">or drag and drop</p>
+            </div>
+            <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+            {newImage && (
+              <p className="text-xs text-green-600 mt-2">New image selected</p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center">
         <input
           type="checkbox"
@@ -262,7 +360,11 @@ const EditPetForm = () => {
       </div>
 
       <div className="flex space-x-4">
-        <Button type="submit" loading={submitting} className="flex-1">
+        <Button 
+          type="submit" 
+          loading={submitting} 
+          className="flex-1"
+        >
           Update Listing
         </Button>
         <Button

@@ -110,17 +110,102 @@ const petService = {
     }
   },
 
-  updatePet: async (id, petData) => {
+  updatePet: async (id, petData, imageFile = null) => {
     try {
-      const response = await api.put(`/pets/${id}/update/`, petData);
+      console.log('[petService.updatePet] Updating pet:', id, 'with data:', petData, 'image:', imageFile);
+      
+      // Use FormData to send both data and image
+      const formData = new FormData();
+      
+      // Append all pet data fields
+      formData.append('name', petData.name);
+      formData.append('pet_type', petData.pet_type);
+      formData.append('breed', petData.breed);
+      formData.append('age', parseFloat(petData.age));
+      formData.append('gender', petData.gender);
+      formData.append('description', petData.description);
+      formData.append('is_for_adoption', Boolean(petData.is_for_adoption));
+      formData.append('price', petData.is_for_adoption ? '' : (petData.price ? parseFloat(petData.price) : ''));
+      formData.append('availability', Boolean(petData.availability));
+      
+      // Append image if provided
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+      
+      console.log('[petService.updatePet] Sending FormData with image:', !!imageFile);
+      
+      const response = await api.put(`/pets/${id}/update/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
       console.log('[petService.updatePet] Success:', response.data);
       return response.data;
     } catch (error) {
-      console.error('[petService.updatePet] Error:', error.response?.data || error.message);
+      console.error('[petService.updatePet] Error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      
+      // Extract detailed error message
+      let errorMessage = 'Failed to update pet listing';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          // If the error is an object with field errors
+          const fieldErrors = Object.entries(error.response.data)
+            .map(([field, errors]) => {
+              if (Array.isArray(errors)) {
+                return `${field}: ${errors.join(', ')}`;
+              }
+              return `${field}: ${errors}`;
+            })
+            .join('; ');
+          if (fieldErrors) {
+            errorMessage = fieldErrors;
+          }
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+  },
+
+  uploadPetImages: async (petId, images) => {
+    try {
+      const formData = new FormData();
+      
+      // Handle multiple images
+      images.forEach((image) => {
+        formData.append('images', image);
+      });
+      
+      console.log('[petService.uploadPetImages] Uploading images for pet:', petId);
+      
+      const response = await api.post(`/pets/${petId}/upload-images/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('[petService.uploadPetImages] Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[petService.uploadPetImages] Error:', error.response?.data || error.message);
       throw new Error(
         error.response?.data?.detail || 
         error.response?.data?.error || 
-        'Failed to update pet listing'
+        'Failed to upload images'
       );
     }
   },
