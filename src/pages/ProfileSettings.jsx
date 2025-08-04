@@ -7,6 +7,7 @@ import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { Camera, CheckCircle, XCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import api from '../services/api';
+import { getAvatarUrl, ImageWithFallback, PLACEHOLDERS } from '../utils/imageUtils';
 
 const ProfileSettings = () => {
   const { user, updateProfile, refreshUser, isAuthenticated, checkAuth } = useAuth();
@@ -15,7 +16,7 @@ const ProfileSettings = () => {
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
-  const [imageFile, setImageFile] = useState(null); // Add state for the actual file
+  const [imageFile, setImageFile] = useState(null);
   const [error, setError] = useState(null);
   const [userStatus, setUserStatus] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -38,7 +39,6 @@ const ProfileSettings = () => {
     setValue: setVerificationValue,
   } = useForm();
 
-  // Fetch user status on mount and when user changes
   useEffect(() => {
     if (isAuthenticated) {
       fetchUserStatus();
@@ -50,7 +50,6 @@ const ProfileSettings = () => {
       const response = await api.get('/users/status/');
       setUserStatus(response.data);
 
-      // If status is verified but local state doesn't reflect it, force update
       if (response.data.verification_status === 'verified' && 
           (!user?.verification_status || user.verification_status !== 'verified')) {
         await checkAuth();
@@ -60,7 +59,6 @@ const ProfileSettings = () => {
     }
   };
 
-  // Update form values when user data changes
   useEffect(() => {
     if (user) {
       reset({
@@ -71,11 +69,10 @@ const ProfileSettings = () => {
         state: user.state || '',
         postcode: user.postcode || '',
       });
-      setImagePreview(user.profile_picture);
+      setImagePreview(getAvatarUrl(user));
     }
   }, [user, reset]);
 
-  // Update verification form values
   useEffect(() => {
     if (showVerificationForm && user) {
       setVerificationValue('phone', user.phone || '');
@@ -87,7 +84,6 @@ const ProfileSettings = () => {
   }, [showVerificationForm, user, setVerificationValue]);
 
   const getVerificationStatusDisplay = () => {
-    // Use userStatus if available, otherwise fall back to user data
     const status = userStatus?.verification_status || user?.verification_status;
 
     switch (status) {
@@ -130,7 +126,7 @@ const ProfileSettings = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file); // Store the actual file
+      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -143,9 +139,7 @@ const ProfileSettings = () => {
     setLoading(true);
     setError(null);
     try {
-      // Check if we need to use FormData (when there's an image)
       if (imageFile) {
-        // Use FormData for file upload
         const formData = new FormData();
         formData.append('username', data.username);
         formData.append('phone', data.phone || '');
@@ -155,14 +149,12 @@ const ProfileSettings = () => {
         formData.append('postcode', data.postcode || '');
         formData.append('profile_picture', imageFile);
 
-        // Send FormData with proper headers
         const response = await api.put('/users/profile/', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
         });
 
-        // Update user state with new data
         await refreshUser();
         
         addNotification({
@@ -173,10 +165,8 @@ const ProfileSettings = () => {
           duration: 5000
         });
 
-        // Clear the image file after successful upload
         setImageFile(null);
       } else {
-        // Use regular JSON for non-file updates
         const updateData = {
           username: data.username,
           phone: data.phone || '',
@@ -226,7 +216,6 @@ const ProfileSettings = () => {
         duration: 5000,
       });
 
-      // Refresh both user data and status
       await fetchUserStatus();
       await refreshUser();
     } catch (error) {
@@ -245,13 +234,8 @@ const ProfileSettings = () => {
     setIsRefreshing(true);
 
     try {
-      // Fetch status first
       await fetchUserStatus();
-
-      // Then refresh auth context
       await checkAuth();
-
-      // Finally refresh user
       await refreshUser();
 
       addNotification({
@@ -301,8 +285,9 @@ const ProfileSettings = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
             <div className="flex items-center space-x-6">
               <div className="relative">
-                <img
-                  src={imagePreview || '/api/placeholder/100/100'}
+                <ImageWithFallback
+                  src={imagePreview || getAvatarUrl(user)}
+                  fallback={PLACEHOLDERS.AVATAR}
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover"
                 />
@@ -367,7 +352,7 @@ const ProfileSettings = () => {
           </form>
         </div>
 
-        {/* Verification Status Section - remains the same */}
+        {/* Verification Status Section */}
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Verification Status</h2>
@@ -419,7 +404,7 @@ const ProfileSettings = () => {
           )}
         </div>
 
-        {/* Verification Form Modal - remains the same */}
+        {/* Verification Form Modal */}
         {showVerificationForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -437,8 +422,7 @@ const ProfileSettings = () => {
               )}
 
               <form onSubmit={handleVerificationSubmit(onVerificationSubmit)} className="p-6 space-y-4">
-                <Input
-                  label="National ID Number"
+                <Input                   label="National ID Number"
                   placeholder="Enter your NID number"
                   {...registerVerification('nid_number', {
                     required: 'NID number is required',

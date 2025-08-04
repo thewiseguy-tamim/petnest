@@ -1,3 +1,4 @@
+// src/pages/PetDetails.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Heart, Share2, MessageCircle } from 'lucide-react';
@@ -6,20 +7,7 @@ import ChatWindow from '../components/messaging/ChatWindow';
 import petService from '../services/petService';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
-
-// ✅ Placeholders
-const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400?text=No+Image+Available';
-const PLACEHOLDER_THUMBNAIL = 'https://placehold.co/80x80?text=No+Image';
-const PLACEHOLDER_AVATAR = 'https://placehold.co/40x40?text=User';
-
-// ✅ Cloudinary base URL
-const CLOUDINARY_BASE_URL = 'https://res.cloudinary.com/ducrwlapf';
-
-// ✅ Proper URL resolver with slash fix
-const resolveImageUrl = (img) => {
-  if (!img) return null;
-  return img.startsWith('http') ? img : `${CLOUDINARY_BASE_URL}/${img.replace(/^\/+/, '')}`;
-};
+import { getImageWithFallback, getPetImageUrl, getAvatarUrl, ImageWithFallback, PLACEHOLDERS } from '../utils/imageUtils';
 
 const PetDetails = () => {
   const { id } = useParams();
@@ -50,26 +38,15 @@ const PetDetails = () => {
   }, [fetchPetDetails]);
 
   const getPrimaryImageUrl = () => {
-    if (pet?.images_data?.length > 0) {
-      const imgData = pet.images_data[selectedImage];
-      const imageUrl = imgData?.image || (typeof imgData === 'string' ? imgData : null);
-      const resolved = resolveImageUrl(imageUrl) || PLACEHOLDER_IMAGE;
-      console.log('[PetDetails] Resolved main image:', resolved);
-      return resolved;
-    }
-
-    if (pet?.image) {
-      const resolved = resolveImageUrl(pet.image) || PLACEHOLDER_IMAGE;
-      console.log('[PetDetails] Resolved fallback image:', resolved);
-      return resolved;
-    }
-
-    return PLACEHOLDER_IMAGE;
+    return getPetImageUrl(pet, selectedImage);
   };
 
-  const getThumbnailUrl = (img) => {
+  const getThumbnailUrl = (img, index) => {
+    if (pet?.images_data?.length > index) {
+      return getPetImageUrl(pet, index);
+    }
     const imageUrl = img?.image || (typeof img === 'string' ? img : null);
-    return resolveImageUrl(imageUrl) || PLACEHOLDER_THUMBNAIL;
+    return getImageWithFallback(imageUrl, PLACEHOLDERS.THUMBNAIL);
   };
 
   const handleContactOwner = async () => {
@@ -164,32 +141,26 @@ const PetDetails = () => {
             {/* Image Gallery */}
             <div className="p-6">
               <div className="mb-4 relative">
-                <img
+                <ImageWithFallback
                   src={getPrimaryImageUrl()}
+                  fallback={PLACEHOLDERS.IMAGE}
                   alt={pet.name || 'Pet'}
                   className="w-full h-96 object-cover rounded-lg bg-gray-100"
-                  onError={(e) => {
-                    console.warn('[PetDetails] Image failed to load:', e.target.src);
-                    e.target.onerror = null;
-                    e.target.src = PLACEHOLDER_IMAGE;
-                  }}
                 />
               </div>
 
               {pet.images_data?.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {pet.images_data.map((img, index) => (
-                    <img
+                    <ImageWithFallback
                       key={index}
-                      src={getThumbnailUrl(img)}
+                      src={getThumbnailUrl(img, index)}
+                      fallback={PLACEHOLDERS.THUMBNAIL}
                       alt={`${pet.name || 'Pet'} ${index + 1}`}
                       onClick={() => setSelectedImage(index)}
                       className={`w-20 h-20 object-cover rounded-lg cursor-pointer flex-shrink-0 bg-gray-100 ${
                         selectedImage === index ? 'ring-2 ring-[#FFCAB0]' : ''
                       }`}
-                      onError={(e) => {
-                        e.target.src = PLACEHOLDER_THUMBNAIL;
-                      }}
                     />
                   ))}
                 </div>
@@ -254,25 +225,12 @@ const PetDetails = () => {
               <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold text-gray-900 mb-2">Posted by</h3>
                 <div className="flex items-center space-x-3">
-                  {pet.owner?.profile_picture ? (
-                    <img 
-                      src={resolveImageUrl(pet.owner.profile_picture)} 
-                      alt={getOwnerName()}
-                      className="w-10 h-10 rounded-full object-cover bg-gray-200"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div 
-                    className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center"
-                    style={{ display: pet.owner?.profile_picture ? 'none' : 'flex' }}
-                  >
-                    <span className="text-gray-600 font-medium">
-                      {getOwnerInitials()}
-                    </span>
-                  </div>
+                  <ImageWithFallback
+                    src={getAvatarUrl(pet.owner)}
+                    fallback={PLACEHOLDERS.AVATAR}
+                    alt={getOwnerName()}
+                    className="w-10 h-10 rounded-full object-cover bg-gray-200"
+                  />
                   <div>
                     <p className="font-medium text-gray-900">{getOwnerName()}</p>
                     <p className="text-sm text-gray-600">Member since {getOwnerJoinYear()}</p>

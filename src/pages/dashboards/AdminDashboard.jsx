@@ -18,6 +18,7 @@ import userService from '../../services/userService';
 import petService from '../../services/petService';
 import { useNotifications } from '../../context/NotificationContext';
 import { formatDate, formatCurrency } from '../../utils/helpers';
+import { getAvatarUrl, getPetImageUrl, ImageWithFallback, PLACEHOLDERS } from '../../utils/imageUtils';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -46,7 +47,6 @@ const AdminDashboard = () => {
     try {
       console.log('[AdminDashboard] Starting parallel data fetch');
       
-      // Fetch all data in parallel
       const [usersData, verificationRequests, postsData, petsData, paymentHistory] = await Promise.all([
         userService.getUsers().catch(err => {
           console.error('[AdminDashboard] Failed to fetch users:', err);
@@ -78,26 +78,21 @@ const AdminDashboard = () => {
         payments: paymentHistory.length
       });
 
-      // Process users data
       const users = Array.isArray(usersData) ? usersData : [];
       const activeUsers = users.filter(user => user.is_active).length;
       const verifiedUsers = users.filter(user => user.is_verified).length;
 
-      // Process verification requests
       const verifications = Array.isArray(verificationRequests) ? verificationRequests : [];
       const pendingVerifications = verifications.filter(req => req.status === 'pending').length;
 
-      // Process posts and pets
       const posts = Array.isArray(postsData) ? postsData : [];
       const pets = Array.isArray(petsData) ? petsData : [];
 
-      // Process payments
       const payments = Array.isArray(paymentHistory) ? paymentHistory : [];
       const totalRevenue = payments
         .filter(payment => payment.status === 'VALID')
         .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
 
-      // Calculate today's revenue
       const today = new Date().toDateString();
       const todayRevenue = payments
         .filter(payment => 
@@ -106,7 +101,6 @@ const AdminDashboard = () => {
         )
         .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
 
-      // Update stats
       setStats({
         totalUsers: users.length,
         activeUsers,
@@ -118,7 +112,6 @@ const AdminDashboard = () => {
         todayRevenue,
       });
 
-      // Set recent data - posts are already enriched with full pet and user data
       setRecentUsers(users.slice(-5).reverse());
       setRecentPosts(posts.slice(-5).reverse());
       setRecentVerifications(verifications.filter(req => req.status === 'pending').slice(0, 5));
@@ -152,13 +145,11 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Page Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-1">Welcome back! Here's an overview of your platform.</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title="Total Users"
@@ -190,9 +181,7 @@ const AdminDashboard = () => {
           />
         </div>
 
-        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Users */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -210,8 +199,9 @@ const AdminDashboard = () => {
                 <div className="space-y-4">
                   {recentUsers.map(user => (
                     <div key={user.id} className="flex items-center space-x-3">
-                      <img
-                        src={user.profile_picture || '/api/placeholder/40/40'}
+                      <ImageWithFallback
+                        src={getAvatarUrl(user)}
+                        fallback={PLACEHOLDERS.AVATAR}
                         alt={user.username}
                         className="w-10 h-10 rounded-full object-cover"
                       />
@@ -233,7 +223,6 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Recent Posts - Updated to use enriched data */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -251,8 +240,9 @@ const AdminDashboard = () => {
                 <div className="space-y-4">
                   {recentPosts.map(post => (
                     <div key={post.id} className="flex items-center space-x-3">
-                      <img
-                        src={post.pet?.images_data?.[0]?.image || '/api/placeholder/40/40'}
+                      <ImageWithFallback
+                        src={getPetImageUrl(post.pet)}
+                        fallback={PLACEHOLDERS.THUMBNAIL}
                         alt={post.pet?.name || 'Pet'}
                         className="w-10 h-10 rounded-lg object-cover"
                       />
@@ -276,11 +266,10 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Pending Verifications */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Pending Verifications</h2>
+                <h2 className="text-lg                 font-semibold text-gray-900">Pending Verifications</h2>
                 <Link 
                   to="/dashboard/admin/verification" 
                   className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
@@ -321,7 +310,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

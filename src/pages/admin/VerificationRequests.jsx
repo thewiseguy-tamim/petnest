@@ -19,7 +19,6 @@ const ErrorBoundary = ({ children, fallback }) => {
       console.error('[ErrorBoundary] Caught error:', error, errorInfo);
       setHasError(true);
     };
-    // Simulate componentDidCatch for functional components
     window.addEventListener('error', errorHandler);
     return () => window.removeEventListener('error', errorHandler);
   }, []);
@@ -48,14 +47,11 @@ const VerificationRequests = () => {
   const renderCount = useRef(0);
   const prevFilter = useRef(filter);
 
-  // Track component renders
   renderCount.current += 1;
   console.debug(`[VerificationRequests] Component rendered ${renderCount.current} times`);
 
-  // Memoize addNotification to ensure stability
   const memoizedAddNotification = useCallback(addNotification, []);
 
-  // Core fetchRequests logic without debounce for direct calls
   const performFetchRequests = useCallback(
     async (force = false) => {
       console.debug(`[VerificationRequests] performFetchRequests called with filter: ${filter}, force: ${force}`);
@@ -89,13 +85,11 @@ const VerificationRequests = () => {
     [filter, memoizedAddNotification]
   );
 
-  // Debounced fetchRequests for automatic calls (e.g., via useEffect)
   const fetchRequests = useCallback(
     debounce(() => performFetchRequests(false), 500),
     [performFetchRequests]
   );
 
-  // Handle refresh button click
   const handleRefresh = useCallback(() => {
     console.debug('[VerificationRequests] Refresh button clicked, forcing fetchRequests');
     performFetchRequests(true);
@@ -169,7 +163,6 @@ const VerificationRequests = () => {
     }
   }, []);
 
-  // Fallback UI for error boundary
   const errorFallback = (
     <div className="text-center py-12">
       <p className="text-lg font-medium text-red-600">An error occurred while loading verification requests.</p>
@@ -202,7 +195,6 @@ const VerificationRequests = () => {
     <DashboardLayout>
       <ErrorBoundary fallback={errorFallback}>
         <div className="space-y-6">
-          {/* Header */}
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -234,7 +226,6 @@ const VerificationRequests = () => {
             </div>
           </div>
 
-          {/* Requests List */}
           <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
             {requests.length > 0 ? (
               <div className="overflow-x-auto">
@@ -246,6 +237,9 @@ const VerificationRequests = () => {
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         NID Number
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        NID Pictures
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Contact
@@ -270,6 +264,7 @@ const VerificationRequests = () => {
                               className="h-10 w-10 rounded-full object-cover"
                               src={request.user?.profile_picture || '/api/placeholder/40/40'}
                               alt={request.user?.username || 'User'}
+                              onError={(e) => (e.target.src = '/api/placeholder/40/40')}
                             />
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">
@@ -285,6 +280,30 @@ const VerificationRequests = () => {
                           <div className="flex items-center text-sm text-gray-900">
                             <CreditCard className="w-4 h-4 mr-2 text-gray-400" />
                             {request.nid_number || 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            {request.nid_front ? (
+                              <img
+                                className="h-12 w-16 object-cover rounded"
+                                src={request.nid_front}
+                                alt="NID Front"
+                                onError={(e) => (e.target.src = '/api/placeholder/64/48')}
+                              />
+                            ) : (
+                              <span className="text-sm text-gray-500">N/A</span>
+                            )}
+                            {request.nid_back ? (
+                              <img
+                                className="h-12 w-16 object-cover rounded"
+                                src={request.nid_back}
+                                alt="NID Back"
+                                onError={(e) => (e.target.src = '/api/placeholder/64/48')}
+                              />
+                            ) : (
+                              <span className="text-sm text-gray-500">N/A</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -355,7 +374,6 @@ const VerificationRequests = () => {
           </div>
         </div>
 
-        {/* Details Modal */}
         <Modal
           isOpen={showModal}
           onClose={() => {
@@ -390,7 +408,37 @@ const VerificationRequests = () => {
                   </div>
                 </div>
               </div>
-
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">NID Pictures</h3>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Front</p>
+                    {selectedRequest.nid_front ? (
+                      <img
+                        className="max-w-full h-auto rounded"
+                        src={selectedRequest.nid_front}
+                        alt="NID Front"
+                        onError={(e) => (e.target.src = '/api/placeholder/300/200')}
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-500">No front image provided</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Back</p>
+                    {selectedRequest.nid_back ? (
+                      <img
+                        className="max-w-full h-auto rounded"
+                        src={selectedRequest.nid_back}
+                        alt="NID Back"
+                        onError={(e) => (e.target.src = '/api/placeholder/300/200')}
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-500">No back image provided</p>
+                    )}
+                  </div>
+                </div>
+              </div>
               {selectedRequest.status === 'pending' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -408,7 +456,6 @@ const VerificationRequests = () => {
                   />
                 </div>
               )}
-
               {selectedRequest.status === 'pending' && selectedRequest.user?.id && (
                 <div className="flex justify-end space-x-3">
                   <Button

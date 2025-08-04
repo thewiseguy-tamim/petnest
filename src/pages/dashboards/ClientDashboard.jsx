@@ -1,3 +1,4 @@
+// src/pages/dashboards/ClientDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
@@ -16,6 +17,7 @@ import {
 import userService from '../../services/userService';
 import messageService from '../../services/messageService';
 import { formatDate } from '../../utils/helpers';
+import { getPetImageUrl, ImageWithFallback, PLACEHOLDERS } from '../../utils/imageUtils';
 
 const ClientDashboard = () => {
   const [userPosts, setUserPosts] = useState([]);
@@ -37,16 +39,13 @@ const ClientDashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch user posts
       const posts = await userService.getUserPosts();
-      console.log('[ClientDashboard] User posts:', posts); // Debug log
+      console.log('[ClientDashboard] User posts:', posts);
       setUserPosts(posts);
 
-      // Fetch conversations
       const convos = await messageService.getConversations();
       setConversations(convos);
 
-      // Calculate stats
       const activePosts = posts.filter(post => post.pet?.availability === true).length;
       const unreadMessages = convos.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
       const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
@@ -65,7 +64,6 @@ const ClientDashboard = () => {
     }
   };
 
-  // Helper function to get pet ID from post
   const getPetId = (post) => {
     if (post.pet?.id) return post.pet.id;
     if (post.pet_id) return post.pet_id;
@@ -102,7 +100,6 @@ const ClientDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Welcome Section */}
         <div className="bg-gradient-to-r from-[#FFE5D4] to-[#FFCAB0] rounded-lg p-8 text-white shadow-lg">
           <h1 className="text-3xl font-bold mb-2">Welcome back!</h1>
           <p className="text-lg opacity-90">Manage your pet listings and connect with potential adopters.</p>
@@ -117,7 +114,6 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
@@ -170,9 +166,7 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* My Listings - Takes 2 columns */}
           <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -207,8 +201,9 @@ const ClientDashboard = () => {
                       <div key={post.id} className="p-6 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            <img
-                              src={post.pet?.images_data?.[0]?.image || '/api/placeholder/80/80'}
+                            <ImageWithFallback
+                              src={getPetImageUrl(post.pet)}
+                              fallback={PLACEHOLDERS.THUMBNAIL}
                               alt={post.pet?.name}
                               className="w-20 h-20 rounded-lg object-cover"
                             />
@@ -246,7 +241,8 @@ const ClientDashboard = () => {
                                 Edit
                               </Link>
                             ) : (
-                              <span className="text-sm text-gray-400 flex items-center">
+                              <span                                 className="text-sm text-gray-400 flex items-center"
+                              >
                                 <Edit2 size={14} className="mr-1" />
                                 Edit unavailable
                               </span>
@@ -271,7 +267,6 @@ const ClientDashboard = () => {
             </div>
           </div>
 
-          {/* Recent Messages - Takes 1 column */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -295,7 +290,6 @@ const ClientDashboard = () => {
                 </div>
               ) : (
                 conversations.slice(0, 5).map((conversation, index) => {
-                  // Create a unique key using multiple identifiers
                   const conversationKey = `conv-${conversation.other_user?.id || 'unknown'}-${conversation.pet?.id || conversation.pet_detail?.id || 'nopet'}-${index}`;
                   
                   return (
@@ -337,7 +331,6 @@ const ClientDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

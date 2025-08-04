@@ -9,6 +9,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import userService from '../../services/userService';
 import { useNotifications } from '../../context/NotificationContext';
 import { formatDate } from '../../utils/helpers';
+import { ImageWithFallback, getAvatarUrl } from '../../utils/imageUtils';
 
 // Simple debounce function to limit rapid API calls
 const debounce = (func, wait) => {
@@ -57,7 +58,6 @@ const UserManagement = () => {
   const performFetchUsers = useCallback(
     async (force = false) => {
       console.debug(`performFetchUsers called with filters: ${JSON.stringify(filters)}, force: ${force}`);
-      // Skip filter check if force is true (e.g., for refresh button)
       if (!force && JSON.stringify(filters) === JSON.stringify(prevFilters.current)) {
         console.debug('Filters unchanged, skipping fetchUsers');
         setLoading(false);
@@ -305,10 +305,11 @@ const UserManagement = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
-                          <img
+                          {console.debug('User:', user.username, 'Profile Picture:', user.profile_picture, 'Resolved URL:', getAvatarUrl(user))}
+                          <ImageWithFallback
+                            src={getAvatarUrl(user)}
+                            alt={user.username}
                             className="h-10 w-10 rounded-full object-cover"
-                            src={user.profile_picture || '/api/placeholder/40/40'}
-                            alt=""
                           />
                         </div>
                         <div className="ml-4">
@@ -366,8 +367,9 @@ const UserManagement = () => {
           <div className="space-y-6">
             {/* User Info */}
             <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-              <img
-                src={selectedUser.profile_picture || '/api/placeholder/60/60'}
+              {console.debug('Modal User:', selectedUser.username, 'Profile Picture:', selectedUser.profile_picture, 'Resolved URL:', getAvatarUrl(selectedUser))}
+              <ImageWithFallback
+                src={getAvatarUrl(selectedUser)}
                 alt={selectedUser.username}
                 className="w-16 h-16 rounded-full object-cover"
               />

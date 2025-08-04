@@ -8,6 +8,7 @@ import { FileText, CheckSquare, Shield, Clock, Users } from 'lucide-react';
 import userService from '../../services/userService';
 import { useNotifications } from '../../context/NotificationContext';
 import { formatDate } from '../../utils/helpers';
+import { getPetImageUrl, ImageWithFallback, PLACEHOLDERS } from '../../utils/imageUtils';
 
 const ModeratorDashboard = () => {
   const [stats, setStats] = useState({
@@ -37,7 +38,7 @@ const ModeratorDashboard = () => {
         totalPosts: posts.length,
         pendingVerifications: verifications.length,
         flaggedPosts: posts.filter(post => post.is_flagged).length,
-        reportedUsers: 0, // No endpoint for this
+        reportedUsers: 0,
       });
 
       setRecentPosts(posts.slice(0, 5));
@@ -73,13 +74,11 @@ const ModeratorDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Page Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <h1 className="text-2xl font-bold text-gray-900">Moderator Dashboard</h1>
           <p className="text-gray-600 mt-1">Monitor and moderate platform content</p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard 
             title="Total Posts" 
@@ -108,9 +107,7 @@ const ModeratorDashboard = () => {
           />
         </div>
 
-        {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Posts */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -129,8 +126,9 @@ const ModeratorDashboard = () => {
                   {recentPosts.map(post => (
                     <div key={post.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <img
-                          src={post.pet?.images_data?.[0]?.image || '/api/placeholder/40/40'}
+                        <ImageWithFallback
+                          src={getPetImageUrl(post.pet)}
+                          fallback={PLACEHOLDERS.THUMBNAIL}
                           alt={post.pet?.name}
                           className="w-10 h-10 rounded-lg object-cover"
                         />
@@ -155,7 +153,6 @@ const ModeratorDashboard = () => {
             </div>
           </div>
 
-          {/* Pending Verifications */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -200,7 +197,6 @@ const ModeratorDashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -224,7 +220,7 @@ const ModeratorDashboard = () => {
             >
               <Shield className="w-5 h-5 mr-2 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Handle Reports</span>
-            </Link>
+                        </Link>
           </div>
         </div>
       </div>
