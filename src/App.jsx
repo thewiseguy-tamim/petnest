@@ -35,12 +35,17 @@ import ClientDashboard from './pages/dashboards/ClientDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import PostManagement from './pages/admin/PostManagement';
 import VerificationRequests from './pages/admin/VerificationRequests';
+import Analytics from './pages/admin/Analytics';
+import RevenueReports from './pages/admin/RevenueReports';
 
 // Additional Pages
 import ProfileSettings from './pages/ProfileSettings';
 import Verification from './pages/Verification';
 import Favorites from './pages/Favorites';
 import PaymentHistory from './pages/PaymentHistory';
+
+// Client Pages
+import ClientPosts from './pages/client/ClientPosts'; // Added import
 
 // Messaging Components
 import ConversationDetail from './components/messaging/ConversationDetail';
@@ -196,7 +201,7 @@ function App() {
           path="/dashboard/admin/analytics"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
+              <Analytics />
             </ProtectedRoute>
           }
         />
@@ -204,7 +209,7 @@ function App() {
           path="/dashboard/admin/revenue"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
+              <RevenueReports />
             </ProtectedRoute>
           }
         />
@@ -272,7 +277,7 @@ function App() {
           path="/dashboard/client/posts"
           element={
             <ProtectedRoute allowedRoles={['client']}>
-              <ClientDashboard />
+              <ClientPosts />
             </ProtectedRoute>
           }
         />

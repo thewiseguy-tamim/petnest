@@ -1,3 +1,4 @@
+// src/pages/ProfileSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../context/NotificationContext';
@@ -14,6 +15,7 @@ const ProfileSettings = () => {
   const [showVerificationForm, setShowVerificationForm] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null); // Add state for the actual file
   const [error, setError] = useState(null);
   const [userStatus, setUserStatus] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -128,6 +130,7 @@ const ProfileSettings = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setImageFile(file); // Store the actual file
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -140,21 +143,55 @@ const ProfileSettings = () => {
     setLoading(true);
     setError(null);
     try {
-      // Send as JSON data, not FormData for regular fields
-      const updateData = {
-        username: data.username,
-        phone: data.phone || '',
-        address: data.address || '',
-        city: data.city || '',
-        state: data.state || '',
-        postcode: data.postcode || ''
-      };
+      // Check if we need to use FormData (when there's an image)
+      if (imageFile) {
+        // Use FormData for file upload
+        const formData = new FormData();
+        formData.append('username', data.username);
+        formData.append('phone', data.phone || '');
+        formData.append('address', data.address || '');
+        formData.append('city', data.city || '');
+        formData.append('state', data.state || '');
+        formData.append('postcode', data.postcode || '');
+        formData.append('profile_picture', imageFile);
 
-      await updateProfile(updateData);
-      await refreshUser();
+        // Send FormData with proper headers
+        const response = await api.put('/users/profile/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        // Update user state with new data
+        await refreshUser();
+        
+        addNotification({
+          type: 'success',
+          title: 'Profile Updated',
+          message: 'Your profile has been updated successfully.',
+          autoHide: true,
+          duration: 5000
+        });
+
+        // Clear the image file after successful upload
+        setImageFile(null);
+      } else {
+        // Use regular JSON for non-file updates
+        const updateData = {
+          username: data.username,
+          phone: data.phone || '',
+          address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          postcode: data.postcode || ''
+        };
+
+        await updateProfile(updateData);
+        await refreshUser();
+      }
     } catch (error) {
       console.error('Profile update error:', error);
-      setError('Failed to update profile. Please try again.');
+      setError(error.response?.data?.detail || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -282,6 +319,9 @@ const ProfileSettings = () => {
               <div>
                 <h3 className="text-lg font-medium text-gray-900">{user?.username}</h3>
                 <p className="text-sm text-gray-500">{user?.email}</p>
+                {imageFile && (
+                  <p className="text-xs text-green-600 mt-1">New image selected</p>
+                )}
               </div>
             </div>
 
@@ -327,7 +367,7 @@ const ProfileSettings = () => {
           </form>
         </div>
 
-        {/* Verification Status Section */}
+        {/* Verification Status Section - remains the same */}
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Verification Status</h2>
@@ -379,7 +419,7 @@ const ProfileSettings = () => {
           )}
         </div>
 
-        {/* Verification Form Modal */}
+        {/* Verification Form Modal - remains the same */}
         {showVerificationForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">

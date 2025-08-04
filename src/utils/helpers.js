@@ -1,16 +1,58 @@
 // src/utils/helpers.js
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow, format, isValid } from 'date-fns';
 
 export const formatDate = (date) => {
-  return format(new Date(date), 'MMM dd, yyyy');
+  if (!date) {
+    console.warn('[helpers.formatDate] Received null or undefined date');
+    return 'N/A';
+  }
+  try {
+    const parsedDate = new Date(date);
+    if (!isValid(parsedDate)) {
+      console.warn('[helpers.formatDate] Invalid date:', date);
+      return 'N/A';
+    }
+    return format(parsedDate, 'MMM dd, yyyy');
+  } catch (error) {
+    console.error('[helpers.formatDate] Error formatting date:', date, error);
+    return 'N/A';
+  }
 };
 
 export const formatDateTime = (date) => {
-  return format(new Date(date), 'MMM dd, yyyy HH:mm');
+  if (!date) {
+    console.warn('[helpers.formatDateTime] Received null or undefined date');
+    return 'N/A';
+  }
+  try {
+    const parsedDate = new Date(date);
+    if (!isValid(parsedDate)) {
+      console.warn('[helpers.formatDateTime] Invalid date:', date);
+      return 'N/A';
+    }
+    return format(parsedDate, 'MMM dd, yyyy HH:mm');
+  } catch (error) {
+    console.error('[helpers.formatDateTime] Error formatting date:', date, error);
+    return 'N/A';
+  }
 };
 
 export const formatRelativeTime = (date) => {
-  return formatDistanceToNow(new Date(date), { addSuffix: true });
+  if (!date) {
+    console.warn('[helpers.formatRelativeTime] Received null or undefined date');
+    return 'N/A';
+  }
+  try {
+    const parsedDate = new Date(date);
+    if (!isValid(parsedDate)) {
+      console.warn('[helpers.formatRelativeTime] Invalid date:', date);
+      return 'N/A';
+    }
+    return formatDistanceToNow(parsedDate, { addSuffix: true });
+  } catch (error) {
+    console.error('[helpers.formatRelativeTime] Error formatting date:', date, error);
+    return 'N/A';
+  }
 };
 
 export const formatCurrency = (amount) => {

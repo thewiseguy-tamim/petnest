@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import { useNotifications } from '../../context/NotificationContext';
 const EditPetForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // Added to debug the current route
   const { addNotification } = useNotifications();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -20,9 +21,24 @@ const EditPetForm = () => {
   const isForAdoption = watch('is_for_adoption');
 
   useEffect(() => {
+    console.log('[EditPetForm] Current route:', location.pathname);
+    console.log('[EditPetForm] Pet ID from useParams:', id);
+
+    if (!id || id === 'undefined') {
+      console.error('[EditPetForm] Invalid pet ID:', id);
+      addNotification({
+        type: 'error',
+        title: 'Invalid Pet ID',
+        message: 'No valid pet ID provided. Please check the URL or navigation source.',
+      });
+      // Temporarily render error state instead of redirecting for debugging
+      setLoading(false);
+      return;
+    }
+
     console.log('[EditPetForm] Fetching pet details for ID:', id);
     fetchPetDetails();
-  }, [id]);
+  }, [id, location.pathname]);
 
   const fetchPetDetails = async () => {
     try {
@@ -30,15 +46,15 @@ const EditPetForm = () => {
       console.log('[EditPetForm.fetchPetDetails] Pet data:', data);
       setPet(data);
       reset({
-        name: data.name,
-        pet_type: data.pet_type,
-        breed: data.breed,
-        age: data.age,
-        gender: data.gender,
-        description: data.description,
-        is_for_adoption: data.is_for_adoption,
-        price: data.price,
-        availability: data.availability,
+        name: data.name || '',
+        pet_type: data.pet_type || '',
+        breed: data.breed || '',
+        age: data.age || 0,
+        gender: data.gender || '',
+        description: data.description || '',
+        is_for_adoption: data.is_for_adoption || false,
+        price: data.price || 0,
+        availability: data.availability || false,
       });
     } catch (error) {
       console.error('[EditPetForm.fetchPetDetails] Error:', {
@@ -49,8 +65,14 @@ const EditPetForm = () => {
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Failed to load pet details.',
+        message: error.response?.status === 404 
+          ? 'Pet not found. It may have been deleted or does not exist.'
+          : 'Failed to load pet details.',
       });
+      // Redirect only on 404 or specific errors
+      if (error.response?.status === 404) {
+        navigate('/');
+      }
     } finally {
       setLoading(false);
       console.log('[EditPetForm.fetchPetDetails] Loading completed, loading:', false);
@@ -61,18 +83,16 @@ const EditPetForm = () => {
     console.log('[EditPetForm.onSubmit] Form data:', data);
     setSubmitting(true);
     try {
-      // Prepare petData for petService.updatePet
       const petData = {
         name: data.name,
         pet_type: data.pet_type,
         breed: data.breed,
-        age: parseFloat(data.age), // Ensure age is a number
+        age: parseFloat(data.age),
         gender: data.gender,
         description: data.description,
         is_for_adoption: data.is_for_adoption,
-        price: data.is_for_adoption ? null : parseFloat(data.price), // Set price to null for adoption
+        price: data.is_for_adoption ? null : parseFloat(data.price),
         availability: data.availability,
-        // Note: Image updates are not supported in this form
       };
 
       console.log('[EditPetForm.onSubmit] Submitting petData:', petData);
@@ -105,6 +125,42 @@ const EditPetForm = () => {
   if (loading) {
     console.log('[EditPetForm] Rendering loading state');
     return <LoadingSpinner />;
+  }
+
+  if (!id || id === 'undefined') {
+    console.log('[EditPetForm] Rendering invalid ID state');
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold text-red-600">Invalid Pet ID</h2>
+        <p className="mt-2 text-gray-600">
+          No valid pet ID was provided. Please check the URL or try again.
+        </p>
+        <Button
+          onClick={() => navigate('/')}
+          className="mt-4"
+        >
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
+  if (!pet) {
+    console.log('[EditPetForm] No pet data, rendering not found');
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold text-red-600">Pet Not Found</h2>
+        <p className="mt-2 text-gray-600">
+          The pet you are trying to edit does not exist or has been deleted.
+        </p>
+        <Button
+          onClick={() => navigate('/')}
+          className="mt-4"
+        >
+          Back to Home
+        </Button>
+      </div>
+    );
   }
 
   return (

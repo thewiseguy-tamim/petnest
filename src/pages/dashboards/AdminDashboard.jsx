@@ -1,115 +1,361 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// src/pages/admin/AdminDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import StatsCard from '../../components/dashboard/StatsCard';
-import { Users, DollarSign, FileText, CheckSquare } from 'lucide-react';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { 
+  Users, 
+  DollarSign, 
+  FileText, 
+  CheckSquare, 
+  TrendingUp,
+  Activity,
+  UserCheck,
+  Clock
+} from 'lucide-react';
 import userService from '../../services/userService';
 import petService from '../../services/petService';
 import { useNotifications } from '../../context/NotificationContext';
+import { formatDate, formatCurrency } from '../../utils/helpers';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
+    activeUsers: 0,
     totalRevenue: 0,
     totalPosts: 0,
+    totalPets: 0,
     pendingVerifications: 0,
+    verifiedUsers: 0,
+    todayRevenue: 0,
   });
   const [recentUsers, setRecentUsers] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
+  const [recentVerifications, setRecentVerifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addNotification } = useNotifications();
-  const navigate = useNavigate();
 
-  const fetchDashboardData = useCallback(async () => {
+  useEffect(() => {
+    console.log('[AdminDashboard] Component mounted, fetching data');
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [usersData, verificationRequests, postsData, paymentHistory] = await Promise.all([
-        userService.getUsers(),
-        userService.getVerificationRequests({ status: 'pending' }),
-        userService.getAdminPosts(),
-        petService.getPaymentHistory(),
+      console.log('[AdminDashboard] Starting parallel data fetch');
+      
+      // Fetch all data in parallel
+      const [usersData, verificationRequests, postsData, petsData, paymentHistory] = await Promise.all([
+        userService.getUsers().catch(err => {
+          console.error('[AdminDashboard] Failed to fetch users:', err);
+          return [];
+        }),
+        userService.getVerificationRequests().catch(err => {
+          console.error('[AdminDashboard] Failed to fetch verification requests:', err);
+          return [];
+        }),
+        userService.getAdminPosts().catch(err => {
+          console.error('[AdminDashboard] Failed to fetch posts:', err);
+          return [];
+        }),
+        petService.getPets().catch(err => {
+          console.error('[AdminDashboard] Failed to fetch pets:', err);
+          return [];
+        }),
+        petService.getPaymentHistory().catch(err => {
+          console.error('[AdminDashboard] Failed to fetch payment history:', err);
+          return [];
+        }),
       ]);
 
-      const totalRevenue = paymentHistory && Array.isArray(paymentHistory)
-        ? paymentHistory
-            .filter(payment => payment.status === 'VALID')
-            .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0)
-        : 0;
-
-      setStats({
-        totalUsers: Array.isArray(usersData) ? usersData.length : 0,
-        totalRevenue,
-        totalPosts: Array.isArray(postsData) ? postsData.length : 0,
-        pendingVerifications: Array.isArray(verificationRequests) ? verificationRequests.length : 0,
+      console.log('[AdminDashboard] Data fetched:', {
+        users: usersData.length,
+        verifications: verificationRequests.length,
+        posts: postsData.length,
+        pets: petsData.length,
+        payments: paymentHistory.length
       });
 
-      setRecentUsers(Array.isArray(usersData) ? usersData.slice(0, 5) : []);
-      setRecentPosts(Array.isArray(postsData) ? postsData.slice(0, 5) : []);
+      // Process users data
+      const users = Array.isArray(usersData) ? usersData : [];
+      const activeUsers = users.filter(user => user.is_active).length;
+      const verifiedUsers = users.filter(user => user.is_verified).length;
+
+      // Process verification requests
+      const verifications = Array.isArray(verificationRequests) ? verificationRequests : [];
+      const pendingVerifications = verifications.filter(req => req.status === 'pending').length;
+
+      // Process posts and pets
+      const posts = Array.isArray(postsData) ? postsData : [];
+      const pets = Array.isArray(petsData) ? petsData : [];
+
+      // Process payments
+      const payments = Array.isArray(paymentHistory) ? paymentHistory : [];
+      const totalRevenue = payments
+        .filter(payment => payment.status === 'VALID')
+        .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+
+      // Calculate today's revenue
+      const today = new Date().toDateString();
+      const todayRevenue = payments
+        .filter(payment => 
+          payment.status === 'VALID' && 
+          new Date(payment.created_at).toDateString() === today
+        )
+        .reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+
+      // Update stats
+      setStats({
+        totalUsers: users.length,
+        activeUsers,
+        totalRevenue,
+        totalPosts: posts.length,
+        totalPets: pets.length,
+        pendingVerifications,
+        verifiedUsers,
+        todayRevenue,
+      });
+
+      // Set recent data - posts are already enriched with full pet and user data
+      setRecentUsers(users.slice(-5).reverse());
+      setRecentPosts(posts.slice(-5).reverse());
+      setRecentVerifications(verifications.filter(req => req.status === 'pending').slice(0, 5));
+
+      console.log('[AdminDashboard] Dashboard data processed successfully');
+
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      addNotification('error', error.message || 'Failed to load dashboard data. Please log in again.');
-      if (error.message.includes('Session expired')) {
-        navigate('/login');
-      }
+      console.error('[AdminDashboard] Failed to fetch dashboard data:', error);
+      addNotification({
+        type: 'error',
+        title: 'Error Loading Dashboard',
+        message: 'Failed to load dashboard data. Please refresh the page.',
+        autoHide: true,
+        duration: 5000
+      });
     } finally {
       setLoading(false);
     }
-  }, [addNotification, navigate]);
+  };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout title="Admin Dashboard">
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatsCard title="Total Users" value={stats.totalUsers} icon={Users} />
-            <StatsCard title="Total Revenue" value={`$${stats.totalRevenue.toFixed(2)}`} icon={DollarSign} />
-            <StatsCard title="Total Posts" value={stats.totalPosts} icon={FileText} />
-            <StatsCard title="Pending Verifications" value={stats.pendingVerifications} icon={CheckSquare} />
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome back! Here's an overview of your platform.</p>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Recent Users</h2>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard
+            title="Total Users"
+            value={stats.totalUsers}
+            icon={Users}
+            change={`${stats.activeUsers} active`}
+            changeType="positive"
+          />
+          <StatsCard
+            title="Total Revenue"
+            value={formatCurrency(stats.totalRevenue)}
+            icon={DollarSign}
+            change={`${formatCurrency(stats.todayRevenue)} today`}
+            changeType="positive"
+          />
+          <StatsCard
+            title="Total Listings"
+            value={stats.totalPets}
+            icon={FileText}
+            change={`${stats.totalPosts} posts`}
+            changeType="positive"
+          />
+          <StatsCard
+            title="Pending Verifications"
+            value={stats.pendingVerifications}
+            icon={CheckSquare}
+            change={`${stats.verifiedUsers} verified users`}
+            changeType={stats.pendingVerifications > 0 ? 'warning' : 'positive'}
+          />
+        </div>
+
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Users */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Recent Users</h2>
+                <Link 
+                  to="/dashboard/admin/users" 
+                  className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+                >
+                  View all
+                </Link>
+              </div>
+            </div>
+            <div className="p-6">
               {recentUsers.length > 0 ? (
-                <ul>
+                <div className="space-y-4">
                   {recentUsers.map(user => (
-                    <li key={user.id} className="mb-2">
-                      <Link to={`/admin/users/${user.id}`} className="text-blue-600 hover:underline">
-                        {user.username} ({user.email})
-                      </Link>
-                    </li>
+                    <div key={user.id} className="flex items-center space-x-3">
+                      <img
+                        src={user.profile_picture || '/api/placeholder/40/40'}
+                        alt={user.username}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {user.username}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                      </div>
+                      {user.is_verified && (
+                        <UserCheck className="w-4 h-4 text-green-500" />
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p>No recent users available.</p>
-              )}
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Recent Posts</h2>
-              {recentPosts.length > 0 ? (
-                <ul>
-                  {recentPosts.map(post => (
-                    <li key={post.id} className="mb-2">
-                      <Link to={`/admin/posts/${post.id}`} className="text-blue-600 hover:underline">
-                        Post by {post.user?.username || 'Unknown'}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No recent posts available.</p>
+                <p className="text-gray-500 text-center py-4">No recent users</p>
               )}
             </div>
           </div>
-        </>
-      )}
+
+          {/* Recent Posts - Updated to use enriched data */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Recent Posts</h2>
+                <Link 
+                  to="/dashboard/admin/posts" 
+                  className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+                >
+                  View all
+                </Link>
+              </div>
+            </div>
+            <div className="p-6">
+              {recentPosts.length > 0 ? (
+                <div className="space-y-4">
+                  {recentPosts.map(post => (
+                    <div key={post.id} className="flex items-center space-x-3">
+                      <img
+                        src={post.pet?.images_data?.[0]?.image || '/api/placeholder/40/40'}
+                        alt={post.pet?.name || 'Pet'}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {post.pet?.name || 'Unnamed Pet'}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          by {post.user?.username || 'Unknown'}
+                        </p>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {formatDate(post.created_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent posts</p>
+              )}
+            </div>
+          </div>
+
+          {/* Pending Verifications */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Pending Verifications</h2>
+                <Link 
+                  to="/dashboard/admin/verification" 
+                  className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+                >
+                  View all
+                </Link>
+              </div>
+            </div>
+            <div className="p-6">
+              {recentVerifications.length > 0 ? (
+                <div className="space-y-4">
+                  {recentVerifications.map(request => (
+                    <div key={request.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Clock className="w-5 h-5 text-yellow-500" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {request.user?.username || 'Unknown User'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(request.created_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        to="/dashboard/admin/verification"
+                        className="text-sm text-[#FFCAB0] hover:text-[#FFB090]"
+                      >
+                        Review
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No pending verifications</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Link
+              to="/dashboard/admin/users"
+              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Users className="w-5 h-5 mr-2 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Manage Users</span>
+            </Link>
+            <Link
+              to="/dashboard/admin/posts"
+              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <FileText className="w-5 h-5 mr-2 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Manage Posts</span>
+            </Link>
+            <Link
+              to="/dashboard/admin/verification"
+              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <CheckSquare className="w-5 h-5 mr-2 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Review Verifications</span>
+            </Link>
+            <Link
+              to="/dashboard/admin/analytics"
+              className="flex items-center justify-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <Activity className="w-5 h-5 mr-2 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">View Analytics</span>
+            </Link>
+          </div>
+        </div>
+      </div>
     </DashboardLayout>
   );
 };
