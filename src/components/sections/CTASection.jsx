@@ -1,31 +1,55 @@
-// src/components/sections/CTASection.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const PlusPattern = () => (
+  <svg
+    className="absolute inset-0 w-full h-full"
+    style={{ zIndex: 0 }}
+    width="100%"
+    height="100%"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <pattern
+        id="plus"
+        x="0"
+        y="0"
+        width="40"
+        height="40"
+        patternUnits="userSpaceOnUse"
+      >
+        <text
+          x="20"
+          y="24"
+          textAnchor="middle"
+          fontSize="20"
+          fill="#D1FAE5"
+          fontFamily="sans-serif"
+        >+</text>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#plus)" />
+  </svg>
+);
+
 const CTASection = () => {
   return (
-    <section className="py-16 bg-gradient-to-r from-[#FFCAB0] to-[#FFB090]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-          Ready to Find Your New Best Friend?
+    <section className="relative py-32 bg-white overflow-hidden">
+      <PlusPattern />
+      <div className="relative z-10 flex flex-col items-center justify-center text-center px-4">
+        <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
+          Ready to make a<br className="hidden md:block" /> difference?
         </h2>
-        <p className="text-xl text-white/90 mb-8">
-          Start your journey today and give a loving pet their forever home
+        <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-2xl">
+          Browse our adoptable pets and begin your journey to finding the perfect match.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/pets"
-            className="bg-white text-[#FFCAB0] px-8 py-3 rounded-full font-semibold hover:shadow-lg transition-shadow"
-          >
-            Browse Pets
-          </Link>
-          <Link
-            to="/about"
-            className="bg-transparent text-white border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-[#FFCAB0] transition-all"
-          >
-            Learn More
-          </Link>
-        </div>
+        <Link
+          to="/pets"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-full text-lg font-semibold shadow-md transition-colors"
+        >
+          Find Your Companion
+        </Link>
       </div>
     </section>
   );

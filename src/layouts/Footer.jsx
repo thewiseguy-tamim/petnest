@@ -1,103 +1,67 @@
 // src/layouts/Footer.jsx
 import React from 'react';
-import { Facebook, Instagram, Twitter, Youtube, Mail } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Youtube, Mail, PawPrint, MapPin, Phone } from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#F8F8F8] mt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Brand Section */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold mb-4" style={{ fontFamily: 'serif' }}>
-            PetNest
-          </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Your trusted platform for finding the perfect pet companion.
-            <br />
-            Connecting loving homes with pets in need since 2024.
-          </p>
-          
-          {/* Social Media Icons */}
-          <div className="flex justify-center space-x-4 mt-6">
-            <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Twitter size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Facebook size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Instagram size={20} />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Youtube size={20} />
-            </a>
+    <footer className="bg-gray-50 ]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Top Section with Brand and Newsletter */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+          {/* Brand Section */}
+          <div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="bg-emerald-100 rounded-full p-3">
+                <PawPrint className="w-10 h-10 text-emerald-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900">
+                PetNest
+              </h2>
+            </div>
+            <p className="text-gray-600 text-lg mb-6 max-w-md">
+              Your trusted platform for finding the perfect pet companion.
+              Connecting loving homes with pets in need since 2024.
+            </p>
+            
+            {/* Social Media Icons */}
+            <div className="flex space-x-4">
+              <a href="#" className="bg-white p-3 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                <Twitter size={20} />
+              </a>
+              <a href="#" className="bg-white p-3 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                <Facebook size={20} />
+              </a>
+              <a href="#" className="bg-white p-3 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                <Instagram size={20} />
+              </a>
+              <a href="#" className="bg-white p-3 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                <Youtube size={20} />
+              </a>
+            </div>
           </div>
-        </div>
 
-        {/* Links Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Shop</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Find Cats</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Find Dogs</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Other Pets</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Pet Supplies</a></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Information</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">About Us</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Contact</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">FAQs</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Blog</a></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Company</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Terms of Service</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Careers</a></li>
-              <li><a href="#" className="text-gray-600 hover:text-gray-800">Partners</a></li>
-            </ul>
-          </div>
-          
           {/* Newsletter Section */}
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-4">Newsletter</h3>
-            <p className="text-gray-600 mb-4">Subscribe to get updates on new pets</p>
-            <form className="flex">
+          <div className="lg:ml-auto">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Stay Updated</h3>
+            <p className="text-gray-600 mb-6">Get weekly updates on new pets available for adoption and pet care tips</p>
+            <form className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
-                placeholder="Your email"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:border-[#FFCAB0]"
+                placeholder="Enter your email"
+                className="flex-1 px-5 py-3 border border-gray-300 rounded-full focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 text-gray-700"
               />
               <button
                 type="submit"
-                className="bg-[#FFCAB0] text-white px-4 py-2 rounded-r-md hover:bg-[#FFB090] transition-colors"
+                className="bg-emerald-600 text-white px-8 py-3 rounded-full hover:bg-emerald-700 transition-colors font-semibold flex items-center justify-center space-x-2"
               >
-                <Mail size={20} />
+                <span>Subscribe</span>
+                <Mail size={18} />
               </button>
             </form>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 text-sm mb-4 md:mb-0">
-            © 2025 PetNest. All rights reserved.
-          </p>
-          <div className="flex space-x-4">
-            <img src="/api/placeholder/40/25" alt="Visa" className="h-6" />
-            <img src="/api/placeholder/40/25" alt="Mastercard" className="h-6" />
-            <img src="/api/placeholder/40/25" alt="PayPal" className="h-6" />
-            <img src="/api/placeholder/40/25" alt="Stripe" className="h-6" />
-          </div>
-        </div>
+        
       </div>
     </footer>
   );
