@@ -40,6 +40,9 @@ const FeaturedPetsSection = () => {
 
   const getPetImageSrc = (pet) => getPetImageUrl(pet, 0);
 
+  // Ensure only up to 4 pets are shown (single row)
+  const displayedPets = (featuredPets || []).slice(0, 4);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -75,7 +78,12 @@ const FeaturedPetsSection = () => {
   }
 
   return (
-    <section className="py-20 bg-[#FAFAF5]">
+    <section className="py-20 bg-[#FAFAF5] relative overflow-hidden">
+      {/* Background details */}
+      <div className="pointer-events-none absolute -top-8 -left-8 w-36 h-36 bg-[#FFEFB5] rounded-xl rotate-12 opacity-70" />
+      <div className="pointer-events-none absolute bottom-16 right-12 w-24 h-24 bg-[#009966]/20 rounded-full blur-md" />
+      <div className="pointer-events-none absolute top-1/3 left-1/2 w-14 h-14 bg-white/60 border border-[#3F3D56]/10 rounded-lg rotate-6" />
+
       <div className="max-w-6xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -94,7 +102,7 @@ const FeaturedPetsSection = () => {
               <PetCardSkeleton key={i} />
             ))}
           </div>
-        ) : featuredPets.length === 0 ? (
+        ) : displayedPets.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">No featured pets available at the moment.</p>
             <Link
@@ -113,7 +121,7 @@ const FeaturedPetsSection = () => {
             viewport={{ once: true }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
           >
-            {featuredPets.map((pet) => (
+            {displayedPets.map((pet) => (
               <motion.div
                 key={pet.id}
                 variants={itemVariants}

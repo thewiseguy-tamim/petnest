@@ -26,7 +26,13 @@ const PetAdoptionSection = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="bg-[#fafaf5] pt-35 p-8">
+    <section ref={sectionRef} className="bg-[#fafaf5] pt-35 p-8 relative overflow-hidden">
+      {/* Background details */}
+      <div className="pointer-events-none absolute -top-8 -left-8 w-36 h-36 bg-[#FFEFB5] rounded-xl rotate-12 opacity-70" />
+      <div className="pointer-events-none absolute bottom-16 right-12 w-24 h-24 bg-[#009966]/20 rounded-full blur-md" />
+      <div className="pointer-events-none absolute top-1/4 right-1/3 w-16 h-16 bg-white/60 border border-[#3F3D56]/10 rounded-lg rotate-6" />
+      <div className="pointer-events-none absolute top-1/2 left-1/4 w-2 h-2 bg-[#009966] rounded-full animate-pulse" />
+
       <div className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Image */}

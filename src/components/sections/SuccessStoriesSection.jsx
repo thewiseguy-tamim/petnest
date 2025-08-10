@@ -1,3 +1,4 @@
+// SuccessStoriesSection.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -68,7 +69,12 @@ export default function SuccessStoriesSection() {
   }, [selected]);
 
   return (
-    <section className="bg-[#FAFAF5] py-20 px-6">
+    <section className="bg-[#FAFAF5] py-20 px-6 relative overflow-hidden">
+      {/* Background details */}
+      <div className="pointer-events-none absolute -top-6 left-6 w-28 h-28 bg-[#FFEFB5] rounded-xl rotate-12 opacity-70" />
+      <div className="pointer-events-none absolute bottom-10 right-10 w-24 h-24 bg-[#009966]/20 rounded-full blur-md" />
+      <div className="pointer-events-none absolute top-1/2 right-1/3 w-12 h-12 bg-white/60 border border-[#3F3D56]/10 rounded-lg rotate-6" />
+
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -119,7 +125,7 @@ export default function SuccessStoriesSection() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto max-h-[90vh]"
+              className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-y-auto max-h:[90vh]"
               initial={{ y: 20, scale: 0.98, opacity: 0 }}
               animate={{ y: 0, scale: 1, opacity: 1 }}
               exit={{ y: 20, scale: 0.98, opacity: 0 }}
