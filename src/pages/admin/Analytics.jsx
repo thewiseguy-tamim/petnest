@@ -1,4 +1,3 @@
-// src/pages/admin/Analytics.jsx
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import DateRangePicker from '../../components/dashboard/DateRangePicker';
@@ -6,24 +5,47 @@ import UserGrowthChart from '../../components/dashboard/UserGrowthChart';
 import PostsChart from '../../components/dashboard/PostsChart';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import analyticsService from '../../services/analyticsService';
+import petService from '../../services/petService';
+import StatsCard from '../../components/dashboard/StatsCard';
 import { TrendingUp, Users, FileText, DollarSign } from 'lucide-react';
+import { formatCurrency } from '../../utils/helpers';
+
+const toNumber = (v) => {
+  const n = typeof v === 'string' ? parseFloat(v) : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const sumCompletedPayments = (payments) => {
+  if (!Array.isArray(payments)) return 0;
+  return payments
+    .filter((p) => (p.status || '').toLowerCase() === 'completed')
+    .reduce((sum, p) => sum + toNumber(p.amount), 0);
+};
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState('month');
   const [stats, setStats] = useState(null);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const data = await analyticsService.getAdminStats(dateRange);
-      setStats(data);
+      const [statsResp, paymentsResp] = await Promise.all([
+        analyticsService.getAdminStats(dateRange).catch(() => ({})),
+        petService.getPaymentHistory().catch(() => []),
+      ]);
+      setStats(statsResp || {});
+      setPayments(Array.isArray(paymentsResp) ? paymentsResp : []);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
+      setStats({});
+      setPayments([]);
     } finally {
       setLoading(false);
     }
@@ -39,11 +61,20 @@ const Analytics = () => {
     );
   }
 
+  const totalUsers = stats?.overview?.totalUsers ?? 0;
+  const totalPosts = stats?.overview?.totalPosts ?? 0;
+  const activeUsers = stats?.overview?.activeUsers ?? 0;
+  const verifiedUsers = stats?.overview?.verifiedUsers ?? 0;
+  const userGrowth = toNumber(stats?.growth?.userGrowth ?? 0);
+  const postGrowth = toNumber(stats?.growth?.postGrowth ?? 0);
+
+  // Force Total Revenue from payments (completed only)
+  const totalRevenueFromPayments = sumCompletedPayments(payments);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
@@ -53,113 +84,46 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="h-8 w-8 text-gray-400" />
-              <span className="text-sm text-green-600 font-medium">
-                +{stats?.growth?.userGrowth || 0}%
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{stats?.overview?.totalUsers || 0}</h3>
-            <p className="text-sm text-gray-600 mt-1">Total Users</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <FileText className="h-8 w-8 text-gray-400" />
-              <span className="text-sm text-green-600 font-medium">
-                +{stats?.growth?.postGrowth || 0}%
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{stats?.overview?.totalPosts || 0}</h3>
-            <p className="text-sm text-gray-600 mt-1">Total Posts</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <DollarSign className="h-8 w-8 text-gray-400" />
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">${stats?.overview?.totalRevenue || 0}</h3>
-            <p className="text-sm text-gray-600 mt-1">Total Revenue</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="h-8 w-8 text-gray-400" />
-              <span className="text-sm text-blue-600 font-medium">
-                {stats?.overview?.verifiedUsers || 0} verified
-              </span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{stats?.overview?.activeUsers || 0}</h3>
-            <p className="text-sm text-gray-600 mt-1">Active Users</p>
-          </div>
+          <StatsCard
+            title="Total Users"
+            value={totalUsers}
+            icon={Users}
+            change={`${userGrowth}% vs last`}
+            changeType="positive"
+          />
+          <StatsCard
+            title="Total Posts"
+            value={totalPosts}
+            icon={FileText}
+            change={`${postGrowth}% vs last`}
+            changeType="positive"
+          />
+          <StatsCard
+            title="Total Revenue"
+            value={formatCurrency(totalRevenueFromPayments)}
+            icon={DollarSign}
+            change="Completed payments"
+            changeType="positive"
+          />
+          <StatsCard
+            title="Active Users"
+            value={activeUsers}
+            icon={TrendingUp}
+            change={`${verifiedUsers} verified`}
+            changeType="positive"
+          />
         </div>
 
-        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h2>
             <UserGrowthChart dateRange={dateRange} />
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Posts Activity</h2>
             <PostsChart dateRange={dateRange} />
-          </div>
-        </div>
-
-        {/* User Distribution */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">User Distribution</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">By Role</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Clients</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byRole?.client || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Moderators</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byRole?.moderator || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Admins</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byRole?.admin || 0}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">By Status</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Active</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byStatus?.active || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Inactive</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byStatus?.inactive || 0}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Verification</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Verified</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byStatus?.verified || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Unverified</span>
-                  <span className="text-sm font-medium">{stats?.userStats?.byStatus?.unverified || 0}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

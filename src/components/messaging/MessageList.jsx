@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -24,7 +24,6 @@ const MessageList = ({ messages, loading }) => {
     return groups;
   };
 
-  // Show loading spinner only when explicitly loading
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
@@ -33,7 +32,6 @@ const MessageList = ({ messages, loading }) => {
     );
   }
 
-  // Debug logging
   console.log('[MessageList] Render state:', {
     loading,
     messagesLength: messages?.length,
@@ -41,7 +39,6 @@ const MessageList = ({ messages, loading }) => {
     user: user?.username
   });
 
-  // Check if user is not authenticated - but only if we're not loading and have no messages
   if (!user && (!messages || messages.length === 0)) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 bg-white">
@@ -50,7 +47,6 @@ const MessageList = ({ messages, loading }) => {
     );
   }
 
-  // If messages is not an array or is undefined, treat as empty
   if (!Array.isArray(messages)) {
     console.warn('[MessageList] Messages is not an array:', messages);
     return (
@@ -60,17 +56,14 @@ const MessageList = ({ messages, loading }) => {
     );
   }
 
-  // Only show "no messages" if we're not loading AND we have an empty array AND user is authenticated
   if (!loading && messages.length === 0 && user) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500 bg-white">
-        <p>You can not send text to yourself</p>
+        <p>No messages yet. Start the conversation!</p>
       </div>
     );
   }
 
-  // If we have messages but no user, still render the messages
-  // This handles cases where user auth state might be temporarily unavailable
   if (messages.length > 0) {
     const groupedMessages = groupMessagesByDate(messages);
 
@@ -87,16 +80,16 @@ const MessageList = ({ messages, loading }) => {
 
             {/* Messages for this date */}
             {dateMessages.map((message, index) => {
-              // Check if the message sender's username matches current user's username
-              // If match = current user sent it (RIGHT side, blue)
-              // If no match = other user sent it (LEFT side, gray)
               const isFromCurrentUser = user && message.sender?.username === user?.username;
-              const showAvatar = (index === 0 || dateMessages[index - 1]?.sender?.id !== message.sender?.id);
-              const isLastInGroup = index === dateMessages.length - 1 || dateMessages[index + 1]?.sender?.id !== message.sender?.id;
-              
+              const showAvatar =
+                index === 0 || dateMessages[index - 1]?.sender?.id !== message.sender?.id;
+              const isLastInGroup =
+                index === dateMessages.length - 1 ||
+                dateMessages[index + 1]?.sender?.id !== message.sender?.id;
+
               return (
                 <div
-                  key={message.id}
+                  key={message.id || `${message.timestamp}-${index}`}
                   className={`flex items-end mb-1 ${isFromCurrentUser ? 'justify-end' : 'justify-start'} ${isLastInGroup ? 'mb-3' : ''}`}
                 >
                   {/* Avatar for OTHER user's messages - LEFT side */}
@@ -113,19 +106,21 @@ const MessageList = ({ messages, loading }) => {
                   )}
 
                   {/* Message bubble */}
-                  <div className={`group relative max-w-[70%]`}>
+                  <div className="group relative max-w-[70%]">
                     <div
                       className={`px-4 py-2 rounded-2xl ${
                         isFromCurrentUser
-                          ? 'bg-blue-500 text-white' // Current user's messages - blue on RIGHT
-                          : 'bg-gray-200 text-gray-900' // Other user's messages - gray on LEFT
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-900'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
-                    
+
                     {/* Timestamp on hover */}
-                    <div className={`absolute -bottom-5 ${isFromCurrentUser ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    <div
+                      className={`absolute -bottom-5 ${isFromCurrentUser ? 'right-0' : 'left-0'} opacity-0 group-hover:opacity-100 transition-opacity`}
+                    >
                       <span className="text-xs text-gray-500">
                         {format(new Date(message.timestamp), 'h:mm a')}
                       </span>
@@ -153,7 +148,7 @@ const MessageList = ({ messages, loading }) => {
     );
   }
 
-  // Fallback - should rarely be reached
+  // Fallback
   return (
     <div className="flex-1 flex items-center justify-center text-gray-500 bg-white">
       <p>No messages yet. Start the conversation!</p>

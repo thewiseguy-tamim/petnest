@@ -304,7 +304,7 @@ const Pets = () => {
       <div className="bg-[#FAFAF5] ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 mt-35">
               Find Your Perfect Companion
             </h1>
             
@@ -556,7 +556,7 @@ const Pets = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-6"
+                className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-30"
               >
                 {pets.map((pet) => (
                   <motion.div
@@ -564,7 +564,7 @@ const Pets = () => {
                     variants={itemVariants}
                     whileHover={{ scale: 1.02, y: -4 }}
                     onClick={() => handlePetClick(pet.id)}
-                    className="bg-[#FAFAF5] rounded-2xl hover:shadow-xl transition cursor-pointer overflow-hidden border border-[#FAFAF5] flex flex-col h-[420px]"
+                    className="bg-[#FAFAF5] rounded-2xl hover:shadow-xl transition cursor-pointer overflow-hidden border border-[#FAFAF5] flex flex-col h-[420px] w-full md:w-[260px] md:h-[520px]"
                   >
                     {/* Image Section */}
                     <div className="relative h-[60%] w-full rounded-xl overflow-hidden">

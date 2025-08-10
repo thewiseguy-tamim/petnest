@@ -9,85 +9,117 @@ import MessageList from './MessageList';
 const ChatWindow = ({ conversation, onClose }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // only for first load
+
+  // StrictMode/dedupe helpers
+  const mountedRef = useRef(false);
+  const intervalRef = useRef(null);
+  const inFlightRef = useRef(false);
+  const lastSigRef = useRef('');
+
   const messagesEndRef = useRef(null);
   const prevMessagesLengthRef = useRef(0);
+
+  const getPetId = (conv) =>
+    conv?.pet?.id ?? conv?.pet_detail?.id ?? (typeof conv?.pet === 'number' ? conv.pet : null);
+  const getPetName = (conv) =>
+    conv?.pet?.name ?? conv?.pet_detail?.name ?? 'Unknown Pet';
+  const getOtherUserId = (conv) =>
+    conv?.other_user?.id ? String(conv.other_user.id) : null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchMessages = useCallback(async () => {
-    if (!user) {
-      console.log('[ChatWindow] User not loaded yet, waiting...');
-      return;
+  // Persist last opened conversation (store IDs as strings)
+  useEffect(() => {
+    const otherId = getOtherUserId(conversation);
+    const pId = getPetId(conversation);
+    if (otherId && pId) {
+      const data = {
+        other_user: {
+          id: String(otherId),
+          username: conversation?.other_user?.username || '',
+        },
+        pet: {
+          id: Number(pId),
+          name: getPetName(conversation) || '',
+        },
+        savedAt: Date.now(),
+      };
+      try {
+        localStorage.setItem('lastConversation', JSON.stringify(data));
+      } catch {}
     }
+  }, [conversation]);
 
-    if (!conversation?.other_user?.id || !conversation?.pet?.id) {
-      console.error('[ChatWindow] Missing conversation data:', conversation);
-      setMessages([]);
-      setLoading(false);
-      return;
-    }
+  const buildMsgSig = (list) =>
+    list.map((m) => `${m.id ?? ''}|${m.timestamp ?? ''}|${m.is_read ? 1 : 0}`).join(',');
 
-    // Convert IDs to strings to ensure consistency
-    const otherUserId = String(conversation.other_user.id);
-    const petId = String(conversation.pet.id);
-
-    console.log('[ChatWindow] fetchMessages called');
-    console.log('  - otherUserId:', otherUserId);
-    console.log('  - petId:', petId);
-    console.log('  - current user ID:', user?.id);
+  const fetchMessages = useCallback(async (opts = { initial: false }) => {
+    if (!user) return;
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
 
     try {
-      // Call the API with the correct parameters
-      const messagesData = await messageService.getConversation(otherUserId, petId);
-      console.log('[ChatWindow] Messages fetched:', messagesData);
-      
-      // Ensure we have an array
-      const messagesArray = Array.isArray(messagesData) ? messagesData : [];
-      setMessages(messagesArray);
+      if (opts.initial) setLoading(true);
 
-      // Mark unread messages as read
-      const hasUnread = messagesArray.some((m) => !m.is_read && m.sender.id !== user.id);
+      const otherId = getOtherUserId(conversation);
+      const petIdVal = getPetId(conversation);
+      if (!otherId || !petIdVal) {
+        console.error('[ChatWindow] Missing conversation data:', conversation);
+        if (opts.initial) setLoading(false);
+        inFlightRef.current = false;
+        return;
+      }
+
+      const messagesData = await messageService.getConversation(String(otherId), String(petIdVal));
+      const messagesArray = Array.isArray(messagesData) ? messagesData : [];
+
+      const sig = buildMsgSig(messagesArray);
+      if (sig !== lastSigRef.current) {
+        lastSigRef.current = sig;
+        setMessages(messagesArray);
+      }
+
+      const hasUnread = messagesArray.some((m) => !m.is_read && m.sender?.id !== user.id);
       if (hasUnread) {
         try {
-          await messageService.markAsRead(otherUserId, petId);
+          await messageService.markAsRead(String(otherId), String(petIdVal));
         } catch (markReadError) {
           console.warn('[ChatWindow] Failed to mark as read:', markReadError);
         }
       }
     } catch (error) {
-      console.error('[ChatWindow] Error fetching messages:', error);
-      console.error('[ChatWindow] Error details:', error.response?.data || error.message);
-      
-      // If it's a 404, it means no messages exist yet - that's okay
-      if (error.response?.status === 404) {
-        setMessages([]);
-      } 
+      console.error('[ChatWindow] Error fetching messages:', error.response?.data || error.message);
     } finally {
-      setLoading(false);
+      if (opts.initial) setLoading(false);
+      inFlightRef.current = false;
     }
   }, [conversation, user]);
 
-  // Initial fetch when component mounts or user/conversation changes
-  useEffect(() => {
-    if (user && conversation) {
-      console.log('[ChatWindow] Initial fetch triggered');
-      fetchMessages();
-    }
-  }, [user, conversation, fetchMessages]);
-
-  // Polling for new messages
+  // Run once on mount (StrictMode-safe)
   useEffect(() => {
     if (!user || !conversation) return;
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    fetchMessages({ initial: true });
+  }, [user, conversation, fetchMessages]);
 
-    const interval = setInterval(() => {
-      console.log('[ChatWindow] Polling for new messages');
-      fetchMessages();
-    }, 10000);
-
-    return () => clearInterval(interval);
+  // Polling (StrictMode-safe)
+  useEffect(() => {
+    if (!user || !conversation) return;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    intervalRef.current = setInterval(() => fetchMessages(), 10000);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [fetchMessages, user, conversation]);
 
   // Scroll to bottom when new messages are added
@@ -99,27 +131,35 @@ const ChatWindow = ({ conversation, onClose }) => {
   }, [messages]);
 
   const handleSendMessage = async (content) => {
-    if (!content.trim()) {
-      return;
-    }
+    if (!content.trim()) return;
 
     const receiverUsername = conversation?.other_user?.username;
-    const petId = conversation?.pet?.id;
+    const petIdVal = getPetId(conversation);
 
-    if (!receiverUsername || !petId) {
+    if (!receiverUsername || !petIdVal) {
       toast.error('Cannot send message: Invalid conversation data');
       return;
     }
 
     try {
-      console.log('[ChatWindow] Sending message...');
       await messageService.sendMessage({
         receiver: receiverUsername,
-        pet: parseInt(petId),
+        pet: parseInt(String(petIdVal), 10),
         content: content,
       });
 
-      console.log('[ChatWindow] Message sent, refreshing...');
+      // Update lastConversation after sending
+      try {
+        localStorage.setItem(
+          'lastConversation',
+          JSON.stringify({
+            other_user: { id: getOtherUserId(conversation), username: receiverUsername },
+            pet: { id: Number(petIdVal), name: getPetName(conversation) || '' },
+            savedAt: Date.now(),
+          })
+        );
+      } catch {}
+
       await fetchMessages();
     } catch (error) {
       console.error('[ChatWindow] Error sending message:', error.response?.data || error.message);
@@ -127,10 +167,12 @@ const ChatWindow = ({ conversation, onClose }) => {
     }
   };
 
-  const petName = conversation?.pet?.name || 'Unknown Pet';
+  const petName = getPetName(conversation);
   const otherUsername = conversation?.other_user?.username || 'Unknown User';
+  const validOtherId = getOtherUserId(conversation);
+  const validPetId = getPetId(conversation);
 
-  if (!conversation?.other_user?.id || !conversation?.pet?.id) {
+  if (!validOtherId || !validPetId) {
     return (
       <div className="fixed bottom-0 right-4 w-96 h-[600px] bg-white shadow-2xl rounded-t-lg flex flex-col">
         <div className="flex-1 flex items-center justify-center">
@@ -139,8 +181,6 @@ const ChatWindow = ({ conversation, onClose }) => {
       </div>
     );
   }
-
-  console.log('[ChatWindow] Render - messages:', messages.length, 'loading:', loading);
 
   return (
     <div className="fixed bottom-0 right-4 w-96 h-[600px] bg-white shadow-2xl rounded-t-lg flex flex-col">

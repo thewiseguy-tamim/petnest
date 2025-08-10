@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import { Upload } from 'lucide-react';
+import { Upload, Info } from 'lucide-react';
 import petService from '../../services/petService';
 import { useNotifications } from '../../context/NotificationContext';
 
@@ -23,67 +23,100 @@ const CreatePetForm = () => {
   const isForAdoption = watch('is_for_adoption');
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
-      console.log('[CreatePetForm.handleImageChange] Selected image:', file.name);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
+      reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
     } else {
-      console.log('[CreatePetForm.handleImageChange] No image selected');
       setImagePreview(null);
     }
   };
 
   const onSubmit = async (data) => {
-    console.log('[CreatePetForm.onSubmit] Form data:', data);
     setLoading(true);
     try {
-      // Prepare petData for petService.createPet
+      // Prepare payload for petService
       const petData = {
         name: data.name,
         pet_type: data.pet_type,
         breed: data.breed,
-        age: parseFloat(data.age), // Ensure age is a number
+        age: parseFloat(data.age),
         gender: data.gender,
         description: data.description,
         is_for_adoption: data.is_for_adoption,
-        price: data.is_for_adoption ? null : parseFloat(data.price), // Set price to null for adoption
-        image: data.image[0], // File object from input
+        price: data.is_for_adoption ? null : parseFloat(data.price),
+        image: data.image[0],
         availability: data.availability,
       };
 
-      console.log('[CreatePetForm.onSubmit] Submitting petData:', petData);
-      const response = await petService.createPet(petData);
+      const result = await petService.createPet(petData);
 
+      // If payment is required, backend returns 202 with payment_url (no top-level id)
+      if (result && result.payment_url) {
+        const amount = isForAdoption ? 5 : 20;
+        addNotification({
+          type: 'info',
+          title: 'Payment Required',
+          message: `You will be redirected to complete a $${amount} payment for this listing.`,
+          autoHide: true,
+          duration: 4000,
+        });
+
+        // Redirect to payment gateway
+        window.location.href = result.payment_url;
+        return;
+      }
+
+      // Free first post flow: backend returns pet object with id
+      if (result && result.id) {
+        addNotification({
+          type: 'success',
+          title: 'Pet Listed Successfully',
+          message: 'Your pet listing has been published.',
+          autoHide: true,
+          duration: 4000,
+        });
+        navigate(`/pets/${result.id}`);
+        return;
+      }
+
+      // Fallback if response is unexpected
       addNotification({
-        type: 'success',
-        title: 'Pet Listed Successfully',
-        message: 'Your pet listing has been published.',
+        type: 'error',
+        title: 'Unexpected Response',
+        message: 'The server returned an unexpected response. Please try again.',
+        autoHide: true,
+        duration: 5000,
       });
-
-      navigate(`/pets/${response.id}`);
     } catch (error) {
-      console.error('[CreatePetForm.onSubmit] Error:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-      });
       addNotification({
         type: 'error',
         title: 'Listing Failed',
         message: error.message || 'Failed to create pet listing. Please try again.',
+        autoHide: true,
+        duration: 6000,
       });
     } finally {
       setLoading(false);
-      console.log('[CreatePetForm.onSubmit] Submission completed, loading:', false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Pricing notice */}
+      <div className="flex items-start p-4 rounded-md bg-blue-50 border border-blue-200">
+        <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+        <div className="text-sm text-blue-800">
+          <p className="font-medium">Listing Policy</p>
+          <ul className="list-disc ml-5 mt-1 space-y-1">
+            <li>Your first pet listing is free.</li>
+            <li>After that: $5 for Adoption listings, $20 for Sale listings.</li>
+            <li>If payment is required, you’ll be redirected to our secure payment gateway.</li>
+          </ul>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="Pet Name"
@@ -148,7 +181,7 @@ const CreatePetForm = () => {
             step="0.01"
             {...register('price', {
               required: !isForAdoption ? 'Price is required for sale' : false,
-              min: { value: 0, message: 'Price must be positive' },
+              min: { value: 0.01, message: 'Price must be positive' },
             })}
             error={errors.price?.message}
           />
@@ -219,7 +252,7 @@ const CreatePetForm = () => {
       </div>
 
       <Button type="submit" loading={loading} className="w-full">
-        Create Listing
+        {loading ? 'Processing...' : isForAdoption ? 'Create Adoption Listing' : 'Create Sale Listing'}
       </Button>
     </form>
   );

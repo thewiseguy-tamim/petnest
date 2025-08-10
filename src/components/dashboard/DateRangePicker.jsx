@@ -11,19 +11,31 @@ const DateRangePicker = ({ value, onChange }) => {
   ];
 
   return (
-    <div className="flex items-center space-x-2">
-      <Calendar className="h-5 w-5 text-gray-400" />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="block pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 rounded-md"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+    <div className="flex items-center gap-3">
+      <div className="flex items-center text-gray-600">
+        <Calendar className="h-5 w-5 mr-2" />
+        <span className="text-sm font-medium">Range</span>
+      </div>
+      <div className="flex rounded-lg bg-gray-100 p-1">
+        {options.map((opt) => {
+          const active = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                active
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              aria-pressed={active}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

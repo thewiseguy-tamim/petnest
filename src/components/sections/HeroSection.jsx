@@ -6,7 +6,8 @@ const HeroSection = () => {
   return (
     <div>
       {/* Main Hero Section */}
-      <section className="relative h-[650px] md:h-[750px] overflow-hidden">
+      <section className="relative h-screen overflow-hidden">
+
         {/* Background with improved gradient */}
         <div className="absolute inset-0">
           <img

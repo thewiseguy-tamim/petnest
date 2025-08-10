@@ -1,6 +1,5 @@
-// src/pages/dashboards/ClientDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { 
@@ -18,6 +17,7 @@ import userService from '../../services/userService';
 import messageService from '../../services/messageService';
 import { formatDate } from '../../utils/helpers';
 import { getPetImageUrl, ImageWithFallback, PLACEHOLDERS } from '../../utils/imageUtils';
+import { useNotifications } from '../../context/NotificationContext';
 
 const ClientDashboard = () => {
   const [userPosts, setUserPosts] = useState([]);
@@ -31,9 +31,63 @@ const ClientDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { addNotification } = useNotifications();
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Show payment result toast and clean the query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentStatus = params.get('payment');
+    if (!paymentStatus) return;
+
+    const lower = String(paymentStatus).toLowerCase();
+    let type = 'info';
+    let title = 'Payment Status';
+    let message = 'Payment status updated.';
+
+    if (lower === 'success') {
+      type = 'success';
+      title = 'Payment Successful';
+      message = 'Your listing has been published successfully.';
+    } else if (lower === 'failed') {
+      type = 'error';
+      title = 'Payment Failed or Canceled';
+      message = 'Payment was not completed. Your listing was not activated.';
+    } else if (lower === 'invalid') {
+      type = 'error';
+      title = 'Invalid Payment';
+      message = 'Payment validation failed. If funds were deducted, please contact support.';
+    } else if (lower === 'not_found') {
+      type = 'error';
+      title = 'Payment Not Found';
+      message = 'We could not find this payment. Please try again.';
+    } else if (lower === 'error') {
+      type = 'error';
+      title = 'Payment Error';
+      message = 'An unexpected error occurred while processing your payment. Please try again.';
+    }
+
+    addNotification({
+      type,
+      title,
+      message,
+      autoHide: true,
+      duration: 6000,
+    });
+
+    // Remove only the payment query param (preserve others)
+    params.delete('payment');
+    const newSearch = params.toString();
+    navigate(
+      { pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' },
+      { replace: true }
+    );
+  }, [location.search, addNotification, navigate, location.pathname]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -241,8 +295,7 @@ const ClientDashboard = () => {
                                 Edit
                               </Link>
                             ) : (
-                              <span                                 className="text-sm text-gray-400 flex items-center"
-                              >
+                              <span className="text-sm text-gray-400 flex items-center">
                                 <Edit2 size={14} className="mr-1" />
                                 Edit unavailable
                               </span>

@@ -10,16 +10,17 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown,
   CheckSquare,
   DollarSign,
   Shield,
   User, 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import PaymentPanel from './PaymentPanel';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [paymentPanelOpen, setPaymentPanelOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -46,6 +47,7 @@ const DashboardLayout = ({ children }) => {
     { path: '/dashboard/client', label: 'My Profile', icon: LayoutDashboard },
     { path: '/dashboard/client/posts', label: 'My Posts', icon: FileText },
     { path: '/dashboard/client/messages', label: 'Messages', icon: Users },
+    { path: '/payments', label: 'Payments', icon: DollarSign }, // New menu item (links to Payment History page)
     { path: '/dashboard/client/favorites', label: 'Favorites', icon: BarChart3 },
     { path: '/dashboard/client/settings', label: 'Settings', icon: Settings },
   ];
@@ -64,7 +66,7 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ background: '#FAFAF5', color: '#0F0F0F' }}>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -81,7 +83,11 @@ const DashboardLayout = ({ children }) => {
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between h-16 px-6 border-b">
-            <Link to="/" className="text-2xl font-bold text-gray-800" style={{ fontFamily: 'serif' }}>
+            <Link
+              to="/"
+              className="text-2xl font-bold"
+              style={{ color: '#3F3D56', fontFamily: 'serif' }}
+            >
               PetNest
             </Link>
             <button
@@ -96,28 +102,40 @@ const DashboardLayout = ({ children }) => {
             <div className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
+                const active = isActive(item.path);
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                      isActive(item.path)
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                    className="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors"
+                    style={{
+                      background: active ? '#FFEFB5' : 'transparent',
+                      color: active ? '#0F0F0F' : '#4B5563',
+                    }}
                   >
                     <Icon className="mr-3 h-5 w-5" />
                     {item.label}
                   </Link>
                 );
               })}
+
+              {/* Make a Payment quick action (drawer) */}
+              <button
+                onClick={() => setPaymentPanelOpen(true)}
+                className="mt-3 w-full flex items-center justify-center px-4 py-3 text-sm font-semibold rounded-lg transition-colors"
+                style={{ background: '#009966', color: '#FFFFFF' }}
+              >
+                <DollarSign className="mr-2 h-5 w-5" />
+                Make a Payment
+              </button>
             </div>
           </nav>
 
           <div className="p-4 border-t">
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors"
+              style={{ color: '#3F3D56' }}
             >
               <LogOut className="mr-3 h-5 w-5" />
               Logout
@@ -129,7 +147,7 @@ const DashboardLayout = ({ children }) => {
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 bg-white shadow-sm">
+        <div className="sticky top-0 z-40 shadow-sm" style={{ background: '#FFFFFF' }}>
           <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -139,12 +157,12 @@ const DashboardLayout = ({ children }) => {
             </button>
 
             <div className="flex items-center space-x-4 ml-auto">
-              <span className="text-sm text-gray-600">Welcome back,</span>
+              <span className="text-sm" style={{ color: '#3F3D56' }}>Welcome back,</span>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-gray-600" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: '#FFEFB5' }}>
+                  <User size={16} style={{ color: '#3F3D56' }} />
                 </div>
-                <span className="text-sm font-medium text-gray-900">{user?.username}</span>
+                <span className="text-sm font-medium" style={{ color: '#0F0F0F' }}>{user?.username}</span>
               </div>
             </div>
           </div>
@@ -153,6 +171,12 @@ const DashboardLayout = ({ children }) => {
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
+
+      {/* Payment Drawer */}
+      <PaymentPanel
+        isOpen={paymentPanelOpen}
+        onClose={() => setPaymentPanelOpen(false)}
+      />
     </div>
   );
 };

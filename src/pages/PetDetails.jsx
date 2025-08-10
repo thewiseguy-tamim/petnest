@@ -1,6 +1,6 @@
-// src/pages/PetDetails.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { MapPin, Heart, Share2, MessageCircle, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ChatWindow from '../components/messaging/ChatWindow';
@@ -9,17 +9,36 @@ import { toast } from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { getImageWithFallback, getPetImageUrl, getAvatarUrl, ImageWithFallback, PLACEHOLDERS } from '../utils/imageUtils';
 
+// Animation variants for Framer Motion (for Pet Grid)
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+};
+
 const PetDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [pet, setPet] = useState(null);
+  const [otherPets, setOtherPets] = useState([]); // State for related pets
   const [loading, setLoading] = useState(true);
+  const [otherPetsLoading, setOtherPetsLoading] = useState(true); // Separate loading for grid
   const [selectedImage, setSelectedImage] = useState(0);
   const [showChat, setShowChat] = useState(false);
   const [conversation, setConversation] = useState(null);
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Fetch pet details
   const fetchPetDetails = useCallback(async () => {
     try {
       const data = await petService.getPetDetails(id);
@@ -33,9 +52,25 @@ const PetDetails = () => {
     }
   }, [id]);
 
+  // Fetch other pets for the grid
+  const fetchOtherPets = useCallback(async () => {
+    try {
+      const data = await petService.getAllPets(); // Assumes petService has a getAllPets method
+      console.log('[PetDetails] Fetched other pets:', data);
+      // Exclude the current pet from the grid
+      setOtherPets(data.filter((p) => String(p.id) !== String(id)));
+    } catch (error) {
+      
+      console.error('[PetDetails] Error fetching other pets:', error.response?.data || error.message);
+    } finally {
+      setOtherPetsLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     fetchPetDetails();
-  }, [fetchPetDetails]);
+    fetchOtherPets();
+  }, [fetchPetDetails, fetchOtherPets]);
 
   const getPrimaryImageUrl = () => {
     return getPetImageUrl(pet, selectedImage);
@@ -120,9 +155,19 @@ const PetDetails = () => {
     }
   };
 
+  // Navigate to another pet's details page
+  const handlePetClick = (petId) => {
+    navigate(`/pets/${petId}`);
+  };
+
+  // Get image for grid cards (consistent with getPetImageUrl)
+  const getPetImageSrc = (pet) => {
+    return getPetImageUrl(pet, 0); // Select primary image (index 0)
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#fafaf5] flex items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -130,11 +175,11 @@ const PetDetails = () => {
 
   if (!pet) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+      <div className="min-h-screen bg-[#fafaf5] py-8 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Pet not found</h2>
           <p className="text-gray-600 mb-4">The pet you're looking for doesn't exist or has been removed.</p>
-          <button 
+          <button
             onClick={() => navigate('/pets')}
             className="bg-[#FFCAB0] text-white px-6 py-2 rounded-lg hover:bg-[#FFB090] transition-colors"
           >
@@ -148,9 +193,10 @@ const PetDetails = () => {
   const hasMultipleImages = pet?.images_data?.length > 1;
 
   return (
-    <div className="min-h-screen bg-[#fafaf5] py-8">
+    <div className="min-h-screen bg-[#fafaf5] py-8 pt-35">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        {/* Main Pet Details */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
           <div className="grid grid-cols-1 lg:grid-cols-2">
             {/* Image Gallery - Left Side */}
             <div className="relative bg-white p-8">
@@ -310,6 +356,8 @@ const PetDetails = () => {
             </div>
           </div>
         </div>
+
+        
       </div>
 
       {showChat && conversation && (
