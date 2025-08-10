@@ -299,7 +299,13 @@ const Pets = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5]">
+    <div className="min-h-screen bg-[#FAFAF5] relative overflow-hidden">
+      {/* Background details (non-interactive) */}
+      <div className="pointer-events-none absolute -top-8 -left-8 w-36 h-36 bg-[#FFEFB5] rounded-xl rotate-12 opacity-70" />
+      <div className="pointer-events-none absolute bottom-12 right-12 w-24 h-24 bg-[#009966]/20 rounded-full blur-md" />
+      <div className="pointer-events-none absolute top-1/3 left-1/2 w-14 h-14 bg-white/60 border border-[#3F3D56]/10 rounded-lg rotate-6" />
+      <div className="pointer-events-none absolute top-1/4 right-1/4 w-2 h-2 bg-[#009966] rounded-full animate-pulse" />
+
       {/* Header */}
       <div className="bg-[#FAFAF5] ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
