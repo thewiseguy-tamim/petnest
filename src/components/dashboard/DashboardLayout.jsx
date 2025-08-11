@@ -1,4 +1,3 @@
-// src/components/dashboard/DashboardLayout.jsx 
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -12,15 +11,12 @@ import {
   X,
   CheckSquare,
   DollarSign,
-  Shield,
-  User, 
+  User,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import PaymentPanel from './PaymentPanel';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [paymentPanelOpen, setPaymentPanelOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -39,23 +35,22 @@ const DashboardLayout = ({ children }) => {
     { path: '/dashboard/moderator', label: 'Overview', icon: LayoutDashboard },
     { path: '/dashboard/moderator/posts', label: 'Post Moderation', icon: FileText },
     { path: '/dashboard/moderator/verification', label: 'Verification Requests', icon: CheckSquare },
-    { path: '/dashboard/moderator/reports', label: 'User Reports', icon: Shield },
-    { path: '/dashboard/moderator/analytics', label: 'Analytics', icon: BarChart3 },
+    // Removed Reports and Analytics for moderators
   ];
 
   const clientMenuItems = [
     { path: '/dashboard/client', label: 'My Profile', icon: LayoutDashboard },
     { path: '/dashboard/client/posts', label: 'My Posts', icon: FileText },
     { path: '/dashboard/client/messages', label: 'Messages', icon: Users },
-    { path: '/payments', label: 'Payments', icon: DollarSign }, // New menu item (links to Payment History page)
+    { path: '/payments', label: 'Payments', icon: DollarSign }, // Links to Payment History page
     { path: '/dashboard/client/favorites', label: 'Favorites', icon: BarChart3 },
     { path: '/dashboard/client/settings', label: 'Settings', icon: Settings },
   ];
 
-  const menuItems = user?.role === 'admin' 
-    ? adminMenuItems 
-    : user?.role === 'moderator' 
-    ? moderatorMenuItems 
+  const menuItems = user?.role === 'admin'
+    ? adminMenuItems
+    : user?.role === 'moderator'
+    ? moderatorMenuItems
     : clientMenuItems;
 
   const isActive = (path) => location.pathname === path;
@@ -118,16 +113,7 @@ const DashboardLayout = ({ children }) => {
                   </Link>
                 );
               })}
-
-              {/* Make a Payment quick action (drawer) */}
-              <button
-                onClick={() => setPaymentPanelOpen(true)}
-                className="mt-3 w-full flex items-center justify-center px-4 py-3 text-sm font-semibold rounded-lg transition-colors"
-                style={{ background: '#009966', color: '#FFFFFF' }}
-              >
-                <DollarSign className="mr-2 h-5 w-5" />
-                Make a Payment
-              </button>
+              {/* Removed "Make a Payment" quick action drawer button */}
             </div>
           </nav>
 
@@ -171,12 +157,6 @@ const DashboardLayout = ({ children }) => {
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
-
-      {/* Payment Drawer */}
-      <PaymentPanel
-        isOpen={paymentPanelOpen}
-        onClose={() => setPaymentPanelOpen(false)}
-      />
     </div>
   );
 };
