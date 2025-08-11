@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 
 const Register = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -10,10 +13,11 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'client',
+    role: 'client', // UI only; not sent to backend
     agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -21,10 +25,8 @@ const Register = () => {
       ...formData,
       [name]: type === 'checkbox' ? checked : value,
     });
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: '' });
-    }
+    if (errors[name]) setErrors({ ...errors, [name]: '' });
+    if (apiError) setApiError('');
   };
 
   const validateForm = () => {
@@ -62,11 +64,70 @@ const Register = () => {
     }
 
     setLoading(true);
-    // Simulate registration
-    setTimeout(() => {
+    setApiError('');
+
+    try {
+      // Register (backend expects only username, email, password)
+      const registerRes = await api.post('users/register/', {
+        username: formData.username.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+
+      if (registerRes.status !== 201 && registerRes.status !== 200) {
+        setApiError('Unexpected response from server during registration.');
+        return;
+      }
+
+      // Auto-login
+      const loginRes = await api.post('users/login/', {
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+
+      const { access, refresh } = loginRes.data || {};
+      if (!access || !refresh) {
+        setApiError('Unexpected response from server during login.');
+        return;
+      }
+
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+      localStorage.removeItem('access');
+      localStorage.removeItem('refresh');
+
+      // Optional: fetch user status
+      try {
+        const statusRes = await api.get('users/status/');
+        if (statusRes?.data) {
+          localStorage.setItem('user', JSON.stringify(statusRes.data));
+        }
+      } catch {
+        // ignore
+      }
+
+      navigate('/');
+    } catch (err) {
+      const data = err?.response?.data || {};
+      const mappedErrors = { ...errors };
+
+      if (Array.isArray(data.username)) mappedErrors.username = data.username[0];
+      if (Array.isArray(data.email)) mappedErrors.email = data.email[0];
+      if (Array.isArray(data.password)) mappedErrors.password = data.password[0];
+
+      const generic =
+        data?.detail ||
+        data?.non_field_errors?.[0] ||
+        (typeof data === 'string' ? data : '');
+
+      if (generic && !mappedErrors.username && !mappedErrors.email && !mappedErrors.password) {
+        setApiError(generic);
+      }
+
+      setErrors(mappedErrors);
+    } finally {
       setLoading(false);
-      alert('Registration successful!');
-    }, 2000);
+    }
   };
 
   return (
@@ -80,14 +141,12 @@ const Register = () => {
         '--accent': '#3F3D56',
       }}
     >
-      {/* Subtle background shapes */}
       <div className="pointer-events-none absolute -top-8 -left-8 w-36 h-36 bg-[var(--secondary)] rounded-xl rotate-12 opacity-70" />
       <div className="pointer-events-none absolute bottom-16 right-12 w-20 h-20 bg-[var(--secondary)] rounded-lg rotate-6 blur-[2px] opacity-70" />
       <div className="pointer-events-none absolute top-1/3 left-1/2 w-14 h-14 bg-[var(--secondary)] rounded-md rotate-12 opacity-70" />
 
       <div className="relative mx-auto max-w-6xl p-4 md:p-6">
         <div className="grid lg:grid-cols-2 rounded-[28px] overflow-hidden bg-white shadow-[0_20px_60px_rgba(63,61,86,0.15)]">
-          {/* Left Side - Image with glass overlay (texts unchanged) */}
           <div className="relative hidden lg:block">
             <img
               src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1600&q=80"
@@ -128,16 +187,13 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Floating accents */}
             <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></div>
             <div className="absolute top-3/4 right-1/3 w-1 h-1 bg-[var(--primary)] rounded-full animate-pulse delay-1000"></div>
             <div className="absolute top-1/2 left-1/4 w-3 h-3 bg-[var(--primary)]/70 rounded-full animate-pulse delay-500"></div>
           </div>
 
-          {/* Right Side - Registration Form (UI only changed) */}
           <div className="flex items-center justify-center px-8 py-12">
             <div className="w-full max-w-md">
-              {/* Logo */}
               <div className="mb-8">
                 <h1 className="text-2xl font-bold mb-2">
                   Pet<span className="text-[var(--primary)]">Nest</span>
@@ -145,7 +201,6 @@ const Register = () => {
                 <div className="w-8 h-0.5 bg-[var(--primary)]"></div>
               </div>
 
-              {/* Welcome Text */}
               <div className="mb-8">
                 <h2 className="text-3xl font-light mb-3">Create Account</h2>
                 <p className="text-sm leading-relaxed opacity-70">
@@ -154,9 +209,13 @@ const Register = () => {
                 </p>
               </div>
 
-              {/* Form */}
-              <div className="space-y-5">
-                {/* Username */}
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                {apiError && (
+                  <div className="p-3 rounded-lg bg-red-50 text-red-600 text-sm">
+                    {apiError}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Username</label>
                   <div className="relative">
@@ -179,7 +238,6 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium mb-2">Email address</label>
                   <div className="relative">
@@ -202,9 +260,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Passwords row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Password */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Password</label>
                     <div className="relative">
@@ -234,7 +290,6 @@ const Register = () => {
                     </div>
                   </div>
 
-                  {/* Confirm Password */}
                   <div>
                     <label className="block text-sm font-medium mb-2">Confirm Password</label>
                     <div className="relative">
@@ -265,7 +320,7 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Role Selection */}
+                {/* Role selection is UI only; not sent to backend */}
                 <div>
                   <label className="block text-sm font-medium mb-2">I want to</label>
                   <div className="relative">
@@ -282,7 +337,6 @@ const Register = () => {
                   </div>
                 </div>
 
-                {/* Terms Agreement */}
                 <div>
                   <label className="flex items-start space-x-3">
                     <input
@@ -308,10 +362,8 @@ const Register = () => {
                   )}
                 </div>
 
-                {/* Submit Button (logic/text unchanged) */}
                 <button
-                  type="button"
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={loading}
                   className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 mt-6"
                 >
@@ -324,18 +376,17 @@ const Register = () => {
                     'Create Account'
                   )}
                 </button>
-              </div>
 
-              {/* Sign In Link */}
-              <p className="text-center mt-8 text-sm opacity-80">
-                Already have an account?{' '}
-                <button
-                  onClick={() => window.location.href = '/login'}
-                  className="text-[var(--primary)] hover:opacity-80 font-medium transition-colors"
-                >
-                  Sign in here
-                </button>
-              </p>
+                <p className="text-center mt-8 text-sm opacity-80">
+                  Already have an account?{' '}
+                  <Link
+                    to="/login"
+                    className="text-[var(--primary)] hover:opacity-80 font-medium transition-colors"
+                  >
+                    Sign in here
+                  </Link>
+                </p>
+              </form>
             </div>
           </div>
         </div>
