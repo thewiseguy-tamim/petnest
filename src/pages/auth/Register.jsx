@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, ChevronDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register: registerUser } = useAuth(); // use the auth hook's register
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -67,47 +68,17 @@ const Register = () => {
     setApiError('');
 
     try {
-      // Register (backend expects only username, email, password)
-      const registerRes = await api.post('users/register/', {
+      // Call the auth hook to register (backend expects only username, email, password)
+      await registerUser({
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
       });
 
-      if (registerRes.status !== 201 && registerRes.status !== 200) {
-        setApiError('Unexpected response from server during registration.');
-        return;
-      }
-
-      // Auto-login
-      const loginRes = await api.post('users/login/', {
-        email: formData.email.trim(),
-        password: formData.password,
-      });
-
-      const { access, refresh } = loginRes.data || {};
-      if (!access || !refresh) {
-        setApiError('Unexpected response from server during login.');
-        return;
-      }
-
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-      localStorage.removeItem('access');
-      localStorage.removeItem('refresh');
-
-      // Optional: fetch user status
-      try {
-        const statusRes = await api.get('users/status/');
-        if (statusRes?.data) {
-          localStorage.setItem('user', JSON.stringify(statusRes.data));
-        }
-      } catch {
-        // ignore
-      }
-
-      navigate('/');
+      // After successful registration, go to login (previous behavior)
+      navigate('/login');
     } catch (err) {
+      // Map DRF validation errors to UI fields
       const data = err?.response?.data || {};
       const mappedErrors = { ...errors };
 
@@ -120,7 +91,12 @@ const Register = () => {
         data?.non_field_errors?.[0] ||
         (typeof data === 'string' ? data : '');
 
-      if (generic && !mappedErrors.username && !mappedErrors.email && !mappedErrors.password) {
+      if (
+        generic &&
+        !mappedErrors.username &&
+        !mappedErrors.email &&
+        !mappedErrors.password
+      ) {
         setApiError(generic);
       }
 

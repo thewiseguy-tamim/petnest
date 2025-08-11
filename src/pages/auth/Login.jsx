@@ -1,16 +1,18 @@
+// src/pages/auth/Login.jsx
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth(); // use the working hook
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    rememberMe: false, // UI only; tokens are stored in localStorage due to your axios setup
+    rememberMe: false, // UI only
   });
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
@@ -50,41 +52,19 @@ const Login = () => {
     setApiError('');
 
     try {
-      const res = await api.post('users/login/', {
+      await login({
         email: formData.email.trim(),
         password: formData.password,
+        // rememberMe is UI-only here; your auth/axios uses localStorage
       });
-
-      const { access, refresh } = res.data || {};
-      if (!access || !refresh) {
-        setApiError('Unexpected response from server.');
-        return;
-      }
-
-      // Your axios instance expects these exact keys in localStorage
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
-
-      // Clean legacy keys if they existed
-      localStorage.removeItem('access');
-      localStorage.removeItem('refresh');
-
-      // Optional: fetch user status (Authorization is auto-added by interceptor)
-      try {
-        const statusRes = await api.get('users/status/');
-        if (statusRes?.data) {
-          localStorage.setItem('user', JSON.stringify(statusRes.data));
-        }
-      } catch {
-        // ignore
-      }
-
       navigate('/');
     } catch (err) {
-      const data = err?.response?.data;
+      // Show a friendly error; useAuth typically throws with a response or message
+      const data = err?.response?.data || {};
       const message =
         data?.detail ||
         data?.non_field_errors?.[0] ||
+        err?.message ||
         'Invalid email or password';
       setApiError(message);
       setErrors((prev) => ({ ...prev, password: 'Invalid email or password' }));
