@@ -1,6 +1,8 @@
 // SuccessStoriesSection.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Max from '../../assets/Jasper.jpg'
+import Whiskers from '../../assets/Mochi.jpg'
 
 // Pet-themed icon
 const PawIcon = ({ className }) => (
@@ -20,7 +22,7 @@ const stories = [
     fullStory: `Max came into our lives through a simple listing—but he's anything but ordinary. Energetic, loving, and incredibly intuitive, he made our home warmer the moment he stepped in.
 
 From fetching slippers to snuggling on rainy evenings, Max is more than a pet—he's family. The adoption process was smooth and supportive, and we appreciated the follow-up guidance provided.`,
-    image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=1200&q=80&auto=format&fit=crop',
+    image: Max,
     bgColor: 'from-teal-200 to-teal-300',
     location: 'Austin, TX',
     adoptedDate: 'April 2024'
@@ -32,7 +34,7 @@ From fetching slippers to snuggling on rainy evenings, Max is more than a pet—
     fullStory: `Whiskers is calm, expressive, and sometimes a bit of a diva. She found her favorite sun-spot in my apartment within a minute of arriving.
 
 This platform made adoption smooth and respectful—no guesswork, just honest support. Now Whiskers chirps when I return from work, and I don’t think I’ve ever felt so loved.`,
-    image: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=1200&q=80&auto=format&fit=crop',
+    image: Whiskers,
     bgColor: 'from-orange-100 to-orange-200',
     location: 'Portland, OR',
     adoptedDate: 'Jan 2025'
