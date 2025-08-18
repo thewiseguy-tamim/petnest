@@ -48,7 +48,7 @@ const Contact = () => {
               
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Mail className="text-[#FFCAB0] mt-1 mr-3" size={20} />
+                  <Mail className="text-green-700 mt-1 mr-3" size={20} />
                   <div>
                     <p className="font-semibold text-gray-900">Email</p>
                     <p className="text-gray-600">support@petnest.com</p>
@@ -56,7 +56,7 @@ const Contact = () => {
                 </div>
                 
                 <div className="flex items-start">
-                  <Phone className="text-[#FFCAB0] mt-1 mr-3" size={20} />
+                  <Phone className="text-green-700 mt-1 mr-3" size={20} />
                   <div>
                     <p className="font-semibold text-gray-900">Phone</p>
                     <p className="text-gray-600">+1 (555) 123-4567</p>
@@ -64,7 +64,7 @@ const Contact = () => {
                 </div>
                 
                 <div className="flex items-start">
-                  <MapPin className="text-[#FFCAB0] mt-1 mr-3" size={20} />
+                  <MapPin className="text-green-700 mt-1 mr-3" size={20} />
                   <div>
                     <p className="font-semibold text-gray-900">Office</p>
                     <p className="text-gray-600">
@@ -101,7 +101,7 @@ const Contact = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FFCAB0]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-700"
                     />
                   </div>
                   
@@ -115,7 +115,7 @@ const Contact = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FFCAB0]"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-700"
                     />
                   </div>
                 </div>
@@ -130,7 +130,7 @@ const Contact = () => {
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FFCAB0]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-700"
                   />
                 </div>
 
@@ -144,13 +144,13 @@ const Contact = () => {
                     onChange={handleChange}
                     required
                     rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FFCAB0] resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-green-700 resize-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="mt-6 w-full bg-[#FFCAB0] text-white py-3 rounded-lg hover:bg-[#FFB090] transition-colors flex items-center justify-center gap-2"
+                  className="mt-6 w-full bg-green-700 text-white py-3 rounded-lg hover:bg-[#FFB090] transition-colors flex items-center justify-center gap-2"
                 >
                   <Send size={20} />
                   Send Message

@@ -70,7 +70,7 @@ const About = () => {
                 alt="Happy pets and families"
                 className="rounded-2xl shadow-xl"
               />
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#FFCAB0] rounded-full opacity-20" />
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-green-700 rounded-full opacity-20" />
             </div>
           </div>
         </div>
@@ -86,7 +86,7 @@ const About = () => {
               return (
                 <div key={index} className="text-center">
                   <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-                    <Icon className="text-[#FFCAB0]" size={24} />
+                    <Icon className="text-green-700" size={24} />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{value.title}</h3>
                   <p className="text-gray-600 text-sm">{value.description}</p>

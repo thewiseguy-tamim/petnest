@@ -19,7 +19,7 @@ const Input = React.forwardRef(({
         ref={ref}
         className={clsx(
           'w-full px-3 py-2 border rounded-md shadow-sm placeholder-gray-400',
-          'focus:outline-none focus:ring-1 focus:ring-[#FFCAB0] focus:border-[#FFCAB0]',
+          'focus:outline-none focus:ring-1 focus:ring-green-700 focus:border-green-700',
           error ? 'border-red-300' : 'border-gray-300',
           className
         )}

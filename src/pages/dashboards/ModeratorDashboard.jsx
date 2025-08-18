@@ -126,7 +126,7 @@ const ModeratorDashboard = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
-            className="inline-flex items-center px-4 py-2 bg-[#FFCAB0] text-white rounded-md hover:bg-[#FFB090] transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-green-700 text-white rounded-md hover:bg-[#FFB090] transition-colors"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry

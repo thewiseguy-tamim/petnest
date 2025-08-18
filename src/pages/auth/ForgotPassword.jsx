@@ -67,7 +67,7 @@ const ForgotPassword = () => {
             </p>
             <Link
               to="/login"
-              className="mt-4 inline-flex items-center text-sm font-medium text-[#FFCAB0] hover:text-[#FFB090]"
+              className="mt-4 inline-flex items-center text-sm font-medium text-green-700 hover:text-[#FFB090]"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to login
@@ -113,7 +113,7 @@ const ForgotPassword = () => {
                   }}
                   className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
                     error ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#FFCAB0] focus:border-[#FFCAB0]`}
+                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-700 focus:border-green-700`}
                   placeholder="Enter your email"
                 />
                 {error && (
@@ -125,7 +125,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#FFCAB0] hover:bg-[#FFB090] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#FFCAB0] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-700 hover:bg-[#FFB090] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? <LoadingSpinner /> : 'Send reset link'}
             </button>
@@ -133,7 +133,7 @@ const ForgotPassword = () => {
             <div className="text-center">
               <Link
                 to="/login"
-                className="inline-flex items-center text-sm font-medium text-[#FFCAB0] hover:text-[#FFB090]"
+                className="inline-flex items-center text-sm font-medium text-green-700 hover:text-[#FFB090]"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to login

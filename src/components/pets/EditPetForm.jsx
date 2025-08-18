@@ -320,8 +320,8 @@ const EditPetForm = () => {
           <div className="space-y-2 text-center">
             <Upload className="mx-auto h-12 w-12 text-gray-400" />
             <div className="flex text-sm text-gray-600 items-center justify-center">
-              <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#FFCAB0] hover:text-[#FFB090] focus-within:outline-none px-2 py-1">
-                <span>Select images</span>
+              <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-700 hover:text-[#FFB090] focus-within:outline-none px-2 py-1">
+                <span className='text-green-700'>Select images</span>
                 <input type="file" multiple onChange={handleNewImagesChange} className="sr-only" accept="image/*" />
               </label>
               <p className="pl-2">or drag and drop</p>
@@ -417,7 +417,7 @@ const EditPetForm = () => {
             <input
               type="checkbox"
               {...register('is_for_adoption')}
-              className="rounded border-gray-300 text-[#FFCAB0] focus:ring-[#FFCAB0]"
+              className="rounded border-gray-300 text-green-700 focus:ring-green-700"
             />
             <span className="text-sm font-medium text-gray-700">
               Available for adoption (free)
@@ -444,7 +444,7 @@ const EditPetForm = () => {
         <textarea
           {...register('description', { required: 'Description is required' })}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0] focus:border-[#FFCAB0]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700 focus:border-green-700"
         />
         {errors.description && (
           <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
@@ -455,7 +455,7 @@ const EditPetForm = () => {
         <input
           type="checkbox"
           {...register('availability')}
-          className="rounded border-gray-300 text-[#FFCAB0] focus:ring-[#FFCAB0]"
+          className="rounded border-gray-300 text-green-700 focus:ring-green-700"
         />
         <label className="ml-2 text-sm text-gray-700">
           Available for adoption/sale
@@ -463,7 +463,7 @@ const EditPetForm = () => {
       </div>
 
       <div className="flex space-x-4">
-        <Button type="submit" loading={submitting} className="flex-1">
+        <Button type="submit" loading={submitting} className="flex-1 bg-green-700 hover:bg-green-600 text-white">
           Save Details
         </Button>
         <Button

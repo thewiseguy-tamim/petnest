@@ -181,7 +181,7 @@ const PetDetails = () => {
           <p className="text-gray-600 mb-4">The pet you're looking for doesn't exist or has been removed.</p>
           <button
             onClick={() => navigate('/pets')}
-            className="bg-[#FFCAB0] text-white px-6 py-2 rounded-lg hover:bg-[#FFB090] transition-colors"
+            className="bg-green-700 text-white px-6 py-2 rounded-lg hover:bg-[#FFB090] transition-colors"
           >
             Browse Pets
           </button>
@@ -269,7 +269,7 @@ const PetDetails = () => {
                     Available for Adoption
                   </div>
                 ) : (
-                  <div className="text-3xl font-bold text-[#FFCAB0]">
+                  <div className="text-3xl font-bold text-[#00a63e]">
                     ${pet.price || 'N/A'}
                   </div>
                 )}

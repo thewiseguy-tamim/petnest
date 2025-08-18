@@ -44,7 +44,7 @@ const FilterPanel = ({ filters = { priceRange: [0, 10000], availability: 'all', 
         <select
           value={filters.availability || 'all'}
           onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#FFCAB0]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-green-700"
         >
           <option value="all">All</option>
           <option value="available">Available</option>
@@ -62,7 +62,7 @@ const FilterPanel = ({ filters = { priceRange: [0, 10000], availability: 'all', 
           value={filters.breed || ''}
           onChange={(e) => setFilters({ ...filters, breed: e.target.value })}
           placeholder="Enter breed"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#FFCAB0]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-green-700"
         />
       </div>
 
@@ -74,7 +74,7 @@ const FilterPanel = ({ filters = { priceRange: [0, 10000], availability: 'all', 
         <select
           value={filters.age || ''}
           onChange={(e) => setFilters({ ...filters, age: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[#FFCAB0]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-green-700"
         >
           <option value="">Any Age</option>
           <option value="0-1">0-1 years</option>
@@ -92,7 +92,7 @@ const FilterPanel = ({ filters = { priceRange: [0, 10000], availability: 'all', 
           breed: '',
           age: '',
         })}
-        className="w-full text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+        className="w-full text-green-700 hover:text-[#FFB090] font-medium"
       >
         Clear All Filters
       </button>

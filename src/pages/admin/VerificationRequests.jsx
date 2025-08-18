@@ -148,7 +148,7 @@ const VerificationRequests = () => {
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0]"
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700"
               >
                 <option value="all">All Requests</option>
                 <option value="pending">Pending</option>
@@ -250,7 +250,7 @@ const VerificationRequests = () => {
                               setSelectedRequest(request);
                               setShowModal(true);
                             }}
-                            className="text-[#FFCAB0] hover:text-[#FFB090]"
+                            className="text-green-700 hover:text-[#FFB090]"
                             title="View Details"
                           >
                             <Eye size={18} />
@@ -361,7 +361,7 @@ const VerificationRequests = () => {
                     value={actionNotes}
                     onChange={(e) => setActionNotes(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700"
                     placeholder="Add any notes about this verification decision..."
                   />
                 </div>

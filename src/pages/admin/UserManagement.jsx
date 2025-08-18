@@ -193,7 +193,7 @@ const UserManagement = () => {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0]"
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700"
               >
                 <option value="">All Status</option>
                 <option value="verified">Verified</option>
@@ -203,7 +203,7 @@ const UserManagement = () => {
               <select
                 value={filters.role}
                 onChange={(e) => setFilters((prev) => ({ ...prev, role: e.target.value }))}
-                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0]"
+                className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700"
               >
                 <option value="">All Roles</option>
                 <option value="admin">Admin</option>
@@ -263,7 +263,7 @@ const UserManagement = () => {
                           setSelectedUser(user);
                           setShowModal(true);
                         }}
-                        className="text-[#FFCAB0] hover:text-[#FFB090]"
+                        className="text-green-700 hover:text-[#FFB090]"
                       >
                         Manage
                       </button>
@@ -305,7 +305,7 @@ const UserManagement = () => {
               <select
                 value={selectedUser.role}
                 onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700"
               >
                 <option value="client">Client</option>
                 <option value="moderator">Moderator</option>

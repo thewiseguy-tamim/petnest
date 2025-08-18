@@ -29,7 +29,7 @@ const Favorites = () => {
             <p className="text-gray-500 mb-4">You haven't saved any pets yet</p>
             <Link
               to="/pets"
-              className="inline-flex items-center px-4 py-2 bg-[#FFCAB0] text-white rounded-md hover:bg-[#FFB090]"
+              className="inline-flex items-center px-4 py-2 bg-green-700 text-white rounded-md hover:bg-[#FFB090]"
             >
               Browse Pets
             </Link>

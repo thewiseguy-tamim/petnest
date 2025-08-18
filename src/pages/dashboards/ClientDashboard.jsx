@@ -142,7 +142,7 @@ const ClientDashboard = () => {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
-            className="inline-flex items-center px-4 py-2 bg-[#FFCAB0] text-white rounded-md hover:bg-[#FFB090] transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-green-700 text-white rounded-md hover:bg-[#FFB090] transition-colors"
           >
             Retry
           </button>
@@ -154,13 +154,13 @@ const ClientDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="bg-gradient-to-r from-[#FFE5D4] to-[#FFCAB0] rounded-lg p-8 text-white shadow-lg">
+        <div className="bg-green-700 rounded-lg p-8 text-white shadow-lg">
           <h1 className="text-3xl font-bold mb-2">Welcome back!</h1>
           <p className="text-lg opacity-90">Manage your pet listings and connect with potential adopters.</p>
           <div className="mt-6">
             <Link
               to="/pets/create"
-              className="inline-flex items-center px-6 py-3 bg-white text-[#FFCAB0] rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-md"
+              className="inline-flex items-center px-6 py-3 bg-white text-green-700 rounded-lg font-medium hover:bg-gray-50 transition-colors shadow-md"
             >
               <Plus className="mr-2" size={20} />
               Create New Listing
@@ -214,7 +214,7 @@ const ClientDashboard = () => {
             </div>
             <p className="text-sm text-gray-600">Profile Status</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">Active</p>
-            <Link to="/profile/settings" className="text-xs text-[#FFCAB0] hover:text-[#FFB090] mt-2 inline-block">
+            <Link to="/profile/settings" className="text-xs text-green-700 hover:text-[#FFB090] mt-2 inline-block">
               View Profile →
             </Link>
           </div>
@@ -227,7 +227,7 @@ const ClientDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">My Pet Listings</h2>
                 <Link
                   to="/pets/create"
-                  className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium flex items-center"
+                  className="text-sm text-green-700 hover:text-[#FFB090] font-medium flex items-center"
                 >
                   <Plus size={16} className="mr-1" />
                   Add New
@@ -241,7 +241,7 @@ const ClientDashboard = () => {
                   <p className="text-gray-500 mb-4">You haven't posted any pets yet</p>
                   <Link
                     to="/pets/create"
-                    className="inline-flex items-center px-4 py-2 bg-[#FFCAB0] text-white rounded-md hover:bg-[#FFB090] transition-colors"
+                    className="inline-flex items-center px-4 py-2 bg-green-700 text-white rounded-md hover:bg-[#FFB090] transition-colors"
                   >
                     <Plus size={16} className="mr-2" />
                     Create Your First Listing
@@ -289,7 +289,7 @@ const ClientDashboard = () => {
                             {petId ? (
                               <Link
                                 to={`/pets/${petId}/edit`}
-                                className="text-sm text-[#FFCAB0] hover:text-[#FFB090] flex items-center"
+                                className="text-sm text-green-700 hover:text-[#FFB090] flex items-center"
                               >
                                 <Edit2 size={14} className="mr-1" />
                                 Edit
@@ -309,7 +309,7 @@ const ClientDashboard = () => {
                     <div className="p-4 text-center border-t">
                       <Link
                         to="/dashboard/client/posts"
-                        className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+                        className="text-sm text-green-700 hover:text-[#FFB090] font-medium"
                       >
                         View All {userPosts.length} Listings →
                       </Link>
@@ -326,7 +326,7 @@ const ClientDashboard = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
                 <Link
                   to="/messages"
-                  className="text-sm text-[#FFCAB0] hover:text-[#FFB090] font-medium"
+                  className="text-sm text-green-700 hover:text-[#FFB090] font-medium"
                 >
                   View All
                 </Link>
@@ -361,7 +361,7 @@ const ClientDashboard = () => {
                               {conversation.other_user?.username || 'Unknown User'}
                             </h4>
                             {conversation.unread_count > 0 && (
-                              <span className="bg-[#FFCAB0] text-white text-xs rounded-full px-2 py-0.5 ml-2">
+                              <span className="bg-green-700 text-white text-xs rounded-full px-2 py-0.5 ml-2">
                                 {conversation.unread_count}
                               </span>
                             )}

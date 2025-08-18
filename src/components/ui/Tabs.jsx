@@ -23,7 +23,7 @@ const Tabs = ({ tabs, defaultTab, onChange, className = '' }) => {
               className={clsx(
                 'py-2 px-1 border-b-2 font-medium text-sm transition-colors',
                 activeTab === tab.value
-                  ? 'border-[#FFCAB0] text-[#FFCAB0]'
+                  ? 'border-green-700 text-green-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               )}
             >

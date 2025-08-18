@@ -467,7 +467,7 @@ const ProfileSettings = () => {
               <Button 
                 type="submit" 
                 loading={loading}
-                className="bg-[#009966] hover:bg-[#007755] text-white px-8"
+                className="bg-green-700 hover:bg-green-600 text-white px-8"
               >
                 Save Changes
               </Button>

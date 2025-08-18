@@ -166,7 +166,7 @@ const CreatePetForm = () => {
             <input
               type="checkbox"
               {...register('is_for_adoption')}
-              className="rounded border-gray-300 text-[#FFCAB0] focus:ring-[#FFCAB0]"
+              className="rounded border-gray-300 text-green-700 focus:ring-green-700"
             />
             <span className="text-sm font-medium text-gray-700">
               Available for adoption (free)
@@ -195,7 +195,7 @@ const CreatePetForm = () => {
         <textarea
           {...register('description', { required: 'Description is required' })}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#FFCAB0] focus:border-[#FFCAB0]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-700 focus:border-green-700"
           placeholder="Describe your pet's personality, habits, and any special needs..."
         />
         {errors.description && (
@@ -219,7 +219,7 @@ const CreatePetForm = () => {
               <Upload className="mx-auto h-12 w-12 text-gray-400" />
             )}
             <div className="flex text-sm text-gray-600">
-              <label className="relative cursor-pointer bg-white rounded-md font-medium text-[#FFCAB0] hover:text-[#FFB090] focus-within:outline-none">
+              <label className="relative cursor-pointer bg-white rounded-md font-medium text-green-700 hover:text-[#FFB090] focus-within:outline-none">
                 <span>Upload a file</span>
                 <input
                   type="file"
@@ -244,7 +244,7 @@ const CreatePetForm = () => {
           type="checkbox"
           {...register('availability')}
           defaultChecked={true}
-          className="rounded border-gray-300 text-[#FFCAB0] focus:ring-[#FFCAB0]"
+          className="rounded border-gray-300 text-green-700 focus:ring-green-700"
         />
         <label className="ml-2 text-sm text-gray-700">
           Mark as available immediately

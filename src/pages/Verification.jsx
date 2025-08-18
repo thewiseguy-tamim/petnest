@@ -69,7 +69,7 @@ const Verification = () => {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="text-center mb-8">
-            <CheckCircle className="mx-auto h-12 w-12 text-[#FFCAB0]" />
+            <CheckCircle className="mx-auto h-12 w-12 text-green-700" />
             <h1 className="mt-4 text-2xl font-bold text-gray-900">Verify Your Account</h1>
             <p className="mt-2 text-sm text-gray-600">
               Complete verification to access all features and build trust with other users
