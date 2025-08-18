@@ -77,7 +77,7 @@ const normalizeTransactions = (txs) =>
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 10)
     .map((t) => ({
-      id: t.transaction_id || t.id,
+      id: t.transaction_id || t.id, // keep gateway ID for display
       amount: toNumber(t.amount),
       status: (t.status || '').toLowerCase(),
       date: t.created_at,
@@ -122,16 +122,21 @@ const RevenueReports = () => {
             }))
           : buildChartFromPayments(payments, dateRange);
 
-      // Recent transactions: prefer analytics if present, else from payments
-      const recentTransactions =
-        analyticsResp?.recentTransactions?.length
-          ? analyticsResp.recentTransactions.map((t) => ({
-              id: t.id || t.transaction_id,
-              amount: toNumber(t.amount),
-              status: (t.status || '').toLowerCase(),
-              date: t.date || t.created_at,
-            }))
-          : normalizeTransactions(payments);
+      // Recent transactions:
+      // Use analytics only if it includes gateway transaction_id; otherwise fall back to payments to ensure correctness.
+      const useAnalyticsRecent =
+        Array.isArray(analyticsResp?.recentTransactions) &&
+        analyticsResp.recentTransactions.length > 0 &&
+        analyticsResp.recentTransactions.every((t) => t && t.transaction_id);
+
+      const recentTransactions = useAnalyticsRecent
+        ? analyticsResp.recentTransactions.map((t) => ({
+            id: t.transaction_id || t.id, // prefer gateway transaction ID
+            amount: toNumber(t.amount),
+            status: (t.status || '').toLowerCase(),
+            date: t.date || t.created_at,
+          }))
+        : normalizeTransactions(payments);
 
       setRevenueData({
         summary: { totalRevenue, totalTransactions, averageTransaction },
@@ -246,8 +251,6 @@ const RevenueReports = () => {
             <p className="text-sm text-gray-600 mt-1">Average Transaction</p>
           </div>
         </div>
-
-        
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="p-6 border-b">

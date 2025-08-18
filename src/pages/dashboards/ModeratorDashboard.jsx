@@ -186,7 +186,7 @@ const ModeratorDashboard = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Posts</h2>
-                <Link to="/dashboard/moderator/posts" className="text-sm text-amber-500 hover:text-amber-600 font-medium">
+                <Link to="/dashboard/moderator/posts" className="text-sm text-green-500 hover:text-green-600 font-medium">
                   View all
                 </Link>
               </div>
@@ -240,7 +240,7 @@ const ModeratorDashboard = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Pending Verifications</h2>
-                <Link to="/dashboard/moderator/verification" className="text-sm text-amber-500 hover:text-amber-600 font-medium">
+                <Link to="/dashboard/moderator/verification" className="text-sm text-green-500 hover:text-green-600 font-medium">
                   View all
                 </Link>
               </div>
@@ -269,7 +269,7 @@ const ModeratorDashboard = () => {
                             </p>
                           </div>
                         </div>
-                        <Link to="/dashboard/moderator/verification" className="text-sm text-amber-500 hover:text-amber-600">
+                        <Link to="/dashboard/moderator/verification" className="text-sm text-green-500 hover:text-green-600">
                           Review
                         </Link>
                       </div>

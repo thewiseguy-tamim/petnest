@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, User, LogOut, LayoutDashboard, PawPrint } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, LayoutDashboard, PawPrint, MessageSquare } from 'lucide-react';
 import NotificationDropdown from '../components/ui/NotificationDropdown';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../hooks/useAuth';
@@ -17,6 +17,7 @@ const Navbar = () => {
   const ref = useRef(null);
   const { scrollY } = useScroll({ target: ref });
   const [visible, setVisible] = useState(false);
+  const isVerified = Boolean(user?.is_verified);
 
   const navLinks = [
     { path: '/', name: 'Home', link: '#home' },
@@ -69,17 +70,25 @@ const Navbar = () => {
 
   const isActive = (path, link) => {
     if (path === '/' && location.pathname === '/') {
-      // If no hash and on home page, highlight "Home" link
       if (!location.hash && link === '#home') {
         return true;
       }
-      // Highlight "About" or "Contact" if their hash matches
       return location.hash === link;
     }
     return location.pathname === path;
   };
 
   const handleDashboardClick = () => {
+    if (!isVerified) {
+      addNotification({
+        type: 'error',
+        title: 'Verification required',
+        message: 'Please verify your account from Profile Settings to access the dashboard.',
+      });
+      navigate('/profile/settings');
+      setShowUserMenu(false);
+      return;
+    }
     if (user?.role === 'admin') {
       navigate('/dashboard/admin');
     } else if (user?.role === 'moderator') {
@@ -160,18 +169,20 @@ const Navbar = () => {
 
         {isAuthenticated ? (
           <div className="flex items-center space-x-4">
-            <motion.div
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            >
-              <Link
-                to="/pets/create"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-semibold transition-colors shadow-md hover:shadow-lg"
+            {isVerified && (
+              <motion.div
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                Post a Pet
-              </Link>
-            </motion.div>
+                <Link
+                  to="/pets/create"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-semibold transition-colors shadow-md hover:shadow-lg"
+                >
+                  Post a Pet
+                </Link>
+              </motion.div>
+            )}
 
             <motion.div className="relative notification-container" whileHover={{ scale: 1.1 }}>
               <button
@@ -235,18 +246,12 @@ const Navbar = () => {
                     <span>Profile Settings</span>
                   </Link>
                   <Link
-                    to="/favorites"
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    My Favorites
-                  </Link>
-                  <Link
                     to="/messages"
-                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-colors"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    Messages
+                    <MessageSquare size={18} />
+                    <span>Messages</span>
                   </Link>
                   <div className="border-t border-gray-200 mt-2 pt-2">
                     <button
@@ -377,13 +382,15 @@ const Navbar = () => {
                 ))}
                 {isAuthenticated ? (
                   <>
-                    <Link
-                      to="/pets/create"
-                      className="block mx-4 my-3 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-semibold text-center transition-colors"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Post a Pet
-                    </Link>
+                    {isVerified && (
+                      <Link
+                        to="/pets/create"
+                        className="block mx-4 my-3 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-full font-semibold text-center transition-colors"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Post a Pet
+                      </Link>
+                    )}
                     <div className="border-t border-gray-200 pt-3 mt-3">
                       <div className="px-4 py-3">
                         <p className="text-base font-semibold text-gray-900">{user?.username}</p>
@@ -406,18 +413,12 @@ const Navbar = () => {
                         Profile Settings
                       </Link>
                       <Link
-                        to="/favorites"
-                        className="block px-4 py-3 text-base font-medium text-gray-700 hover:text-emerald-600 hover:bg-gray-50 rounded-lg"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        My Favorites
-                      </Link>
-                      <Link
                         to="/messages"
-                        className="block px-4 py-3 text-base font-medium text-gray-700 hover:text-emerald-600 hover:bg-gray-50 rounded-lg"
+                        className="block px-4 py-3 text-base font-medium text-gray-700 hover:text-emerald-600 hover:bg-gray-50 rounded-lg flex items-center space-x-3"
                         onClick={() => setIsOpen(false)}
                       >
-                        Messages
+                        <MessageSquare size={18} />
+                        <span>Messages</span>
                       </Link>
                       <button
                         onClick={() => {
