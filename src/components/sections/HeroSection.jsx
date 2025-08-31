@@ -1,8 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Plus, Heart, Users, Star } from 'lucide-react';
+
 import heroImage from '../../assets/hero.png';
+import { useAuth } from '../../hooks/useAuth';
 
 const HeroSection = () => {
+  const { user, isAuthenticated } = useAuth();
+
   return (
     <div>
       {/* Main Hero Section */}
@@ -36,7 +41,7 @@ const HeroSection = () => {
               </div>
             </div>
 
-            <h1             className="text-4xl md:text-6xl xl:text-7xl font-bold text-gray-900 mb-6 leading-tight opacity-0 animate-[fadeInUp_0.8s_ease-out_0.2s_forwards]">
+            <h1 className="text-4xl md:text-6xl xl:text-7xl font-bold text-gray-900 mb-6 leading-tight opacity-0 animate-[fadeInUp_0.8s_ease-out_0.2s_forwards]">
               Find Your Perfect Pet
               <span className="block text-emerald-400">Companion Today</span>
             </h1>
@@ -47,14 +52,20 @@ const HeroSection = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8 opacity-0 animate-[fadeInUp_0.8s_ease-out_0.6s_forwards]">
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 inline-flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl group hover:scale-105 hover:-translate-y-1">
+              <Link 
+                to="/pets"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 inline-flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl group hover:scale-105 hover:-translate-y-1"
+              >
                 <Search size={20} className="group-hover:rotate-12 transition-transform" />
                 <span>Browse Pets</span>
-              </button>
-              <button className="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-900 px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 inline-flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl group hover:scale-105 hover:-translate-y-1 border border-gray-200">
+              </Link>
+              <Link 
+                to={!isAuthenticated ? '/login' : !user?.is_verified ? '/profile/settings' : '/pets/create'}
+                className="bg-white/90 backdrop-blur-sm hover:bg-white text-gray-900 px-8 py-4 rounded-full text-lg font-semibold transition-all duration-300 inline-flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl group hover:scale-105 hover:-translate-y-1 border border-gray-200"
+              >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform" />
                 <span>List a Pet</span>
-              </button>
+              </Link>
             </div>
 
             {/* Quick stats */}
@@ -81,8 +92,6 @@ const HeroSection = () => {
           </svg>
         </div>
       </section>
-
-
 
       <style jsx>{`
         @keyframes fadeInUp {
