@@ -44,7 +44,7 @@ const AboutUs = () => {
             style={styles.eyebrow}
           >
             <Sparkles size={16} color={COLORS.accent} />
-            <span>About HeartPaws</span>
+            <span>About Petnest</span>
           </motion.div>
 
           {/* Heading */}
@@ -53,16 +53,16 @@ const AboutUs = () => {
             variants={fadeInUp}
             custom={0.2}
           >
-            Our Story <span style={styles.headingAccent}>With Heart</span>
+            Our  <span style={styles.headingAccent}>Story</span>
           </motion.h2>
 
           <motion.p style={styles.paragraph} variants={fadeInUp} custom={0.3}>
-            HeartPaws began with a simple but powerful belief: every animal deserves a loving home, and every adoption should feel like a celebration.
+            Petnest began with a simple but powerful belief: every animal deserves a loving home, and every adoption should feel like a celebration.
             We saw too many platforms that felt transactional, cold, or confusing—and we knew there had to be a better way.
           </motion.p>
 
           <motion.p style={styles.paragraph} variants={fadeInUp} custom={0.4}>
-            So we built HeartPaws to be different. A place where stories matter. Where verified shelters meet compassionate adopters.
+            So we built Petnest to be different. A place where stories matter. Where verified shelters meet compassionate adopters.
             Where every click feels warm, every testimonial feels real, and every adoption is a moment worth sharing.
           </motion.p>
 
@@ -88,21 +88,7 @@ const AboutUs = () => {
 
     
 
-          {/* Stats */}
-          <motion.div style={styles.statsRow} variants={fadeInUp} custom={0.9}>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>8k+</div>
-              <div style={styles.statLabel}>Adoptions</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>120+</div>
-              <div style={styles.statLabel}>Partner Shelters</div>
-            </div>
-            <div style={styles.statCard}>
-              <div style={styles.statNumber}>98%</div>
-              <div style={styles.statLabel}>Match Satisfaction</div>
-            </div>
-          </motion.div>
+          
         </motion.div>
 
         {/* Right: Visual */}

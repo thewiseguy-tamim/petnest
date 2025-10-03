@@ -201,8 +201,8 @@ const ContactUs = () => {
             <div className="info-row">
               <Mail size={22} style={{ color: COLORS.text }} />
               <div>
-                <div className="info-label">Chat with us</div>
-                <div className="info-text">pawshelter@example.com</div>
+                <div className="info-label">Chat with me</div>
+                <div className="info-text">tamimislam.dev@gmail.com</div>
               </div>
             </div>
 
@@ -211,8 +211,7 @@ const ContactUs = () => {
               <div>
                 <div className="info-label">Shelter</div>
                 <div className="info-text">
-                  4517 Washington Ave. Manchester,<br />
-                  Kentucky 39495
+                 Mirpur, Dhaka-1216
                 </div>
               </div>
             </div>
@@ -221,7 +220,7 @@ const ContactUs = () => {
               <Phone size={22} style={{ color: COLORS.text }} />
               <div>
                 <div className="info-label">Phone</div>
-                <div className="info-text">(704) 555-0127</div>
+                <div className="info-text">(+880) 1823-507-219</div>
               </div>
             </div>
 
@@ -258,7 +257,7 @@ const ContactUs = () => {
                 onFocus={() => setFocusedField('name')}
                 onBlur={() => setFocusedField(null)}
                 required
-                placeholder="e.g., Alex Johnson"
+                placeholder="e.g., Tamim Islam"
                 style={getInputStyle('name')}
               />
             </div>
@@ -277,7 +276,7 @@ const ContactUs = () => {
                 onFocus={() => setFocusedField('email')}
                 onBlur={() => setFocusedField(null)}
                 required
-                placeholder="your@email.com"
+                placeholder="tamimislam.dev@gmail.com"
                 style={getInputStyle('email')}
               />
             </div>
@@ -293,7 +292,7 @@ const ContactUs = () => {
                 onChange={handleChange}
                 onFocus={() => setFocusedField('phone')}
                 onBlur={() => setFocusedField(null)}
-                placeholder="(123) 456-7890"
+                placeholder="(+880) 1823-507-219"
                 style={getInputStyle('phone')}
               />
             </div>
