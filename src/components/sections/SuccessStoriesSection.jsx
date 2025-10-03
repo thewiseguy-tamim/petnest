@@ -25,7 +25,7 @@ From fetching slippers to snuggling on rainy evenings, Max is more than a pet—
     image: Max,
     bgColor: 'from-teal-200 to-teal-300',
     location: 'Austin, TX',
-    adoptedDate: 'April 2024'
+    adoptedDate: 'April 2025'
   },
   {
     name: 'Sarah M.',

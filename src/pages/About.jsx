@@ -48,7 +48,7 @@ const About = () => {
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
               <p className="text-gray-600 mb-4">
-                PetNest was founded in 2024 with a simple belief: every pet deserves a loving home, 
+                PetNest was founded in 2025 with a simple belief: every pet deserves a loving home, 
                 and every family deserves the joy of a pet companion. What started as a small 
                 initiative has grown into a nationwide platform connecting thousands of pets with 
                 their forever families.

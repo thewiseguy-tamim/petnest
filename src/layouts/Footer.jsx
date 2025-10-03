@@ -20,7 +20,7 @@ const Footer = () => {
             </div>
             <p className="text-gray-600 text-lg mb-6 max-w-md">
               Your trusted platform for finding the perfect pet companion.
-              Connecting loving homes with pets in need since 2024.
+              Connecting loving homes with pets in need since 2025.
             </p>
             
             {/* Social Media Icons */}
